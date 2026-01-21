@@ -24,8 +24,9 @@
       implicit none
       private
       public :: set_evp_parameters, stepu, stepuv_CD, stepu_C, stepv_C, &
-                principal_stress, init_dyn_shared, dyn_prep1, dyn_prep2, dyn_finish, &
+                principal_stress, init_dyn, dyn_prep1, dyn_prep2, dyn_finish, &
                 seabed_stress_factor_LKD, seabed_stress_factor_prob, &
+                alloc_dyn_shared, &
                 deformations, deformationsC_T, deformationsCD_T, &
                 strain_rates, strain_rates_T, strain_rates_U, &
                 visc_replpress, &
@@ -93,11 +94,6 @@
          fcorE_blk(:,:,:), & ! Coriolis parameter at E points (1/s)
          fcorN_blk(:,:,:)    ! Coriolis parameter at N points  (1/s)
 
-      real (kind=dbl_kind), allocatable, public :: &
-         fld2(:,:,:,:), & ! 2 bundled fields
-         fld3(:,:,:,:), & ! 3 bundled fields
-         fld4(:,:,:,:)    ! 4 bundled fields
-
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
          uvel_init       , & ! x-component of velocity (m/s), beginning of timestep
          vvel_init           ! y-component of velocity (m/s), beginning of timestep
@@ -109,12 +105,6 @@
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
          uvelE_init      , & ! x-component of velocity (m/s), beginning of timestep
          vvelE_init          ! y-component of velocity (m/s), beginning of timestep
-
-      logical (kind=log_kind), dimension (:,:,:), allocatable, public :: &
-         iceTmask, &   ! ice extent mask (T-cell)
-         iceUmask, &   ! ice extent mask (U-cell)
-         iceNmask, &   ! ice extent mask (N-cell)
-         iceEmask      ! ice extent mask (E-cell)
 
       real (kind=dbl_kind), allocatable, public :: &
          DminTarea(:,:,:)    ! deltamin * tarea (m^2/s)
@@ -178,17 +168,6 @@
       allocate( &
          uvel_init (nx_block,ny_block,max_blocks), & ! x-component of velocity (m/s), beginning of timestep
          vvel_init (nx_block,ny_block,max_blocks), & ! y-component of velocity (m/s), beginning of timestep
-         iceTmask  (nx_block,ny_block,max_blocks), & ! T mask for dynamics
-         iceUmask  (nx_block,ny_block,max_blocks), & ! U mask for dynamics
-         fcor_blk  (nx_block,ny_block,max_blocks), & ! Coriolis
-         DminTarea (nx_block,ny_block,max_blocks), & !
-         stat=ierr)
-      if (ierr/=0) call abort_ice(subname//': Out of memory')
-
-      allocate( &
-         fld2(nx_block,ny_block,2,max_blocks), &
-         fld3(nx_block,ny_block,3,max_blocks), &
-         fld4(nx_block,ny_block,4,max_blocks), &
          stat=ierr)
       if (ierr/=0) call abort_ice(subname//': Out of memory')
 
@@ -198,10 +177,6 @@
             vvelE_init (nx_block,ny_block,max_blocks), & ! y-component of velocity (m/s), beginning of timestep
             uvelN_init (nx_block,ny_block,max_blocks), & ! x-component of velocity (m/s), beginning of timestep
             vvelN_init (nx_block,ny_block,max_blocks), & ! y-component of velocity (m/s), beginning of timestep
-            iceEmask   (nx_block,ny_block,max_blocks), & ! T mask for dynamics
-            iceNmask   (nx_block,ny_block,max_blocks), & ! U mask for dynamics
-            fcorE_blk  (nx_block,ny_block,max_blocks), & ! Coriolis
-            fcorN_blk  (nx_block,ny_block,max_blocks), &   ! Coriolis
             stat=ierr)
          if (ierr/=0) call abort_ice(subname//': Out of memory')
       endif
@@ -212,19 +187,19 @@
 ! Initialize parameters and variables needed for the dynamics
 ! author: Elizabeth C. Hunke, LANL
 
-      subroutine init_dyn_shared (dt)
+      subroutine init_dyn (dt)
 
       use ice_blocks, only: nx_block, ny_block
       use ice_domain, only: nblocks, halo_dynbundle
       use ice_domain_size, only: max_blocks
-      use ice_flux, only: &
+      use ice_flux, only: rdg_conv, rdg_shear, &
           stressp_1, stressp_2, stressp_3, stressp_4, &
           stressm_1, stressm_2, stressm_3, stressm_4, &
           stress12_1, stress12_2, stress12_3, stress12_4, &
           stresspT, stressmT, stress12T, &
           stresspU, stressmU, stress12U
-      use ice_state, only: uvel, vvel, uvelE, vvelE, uvelN, vvelN
-      use ice_grid, only: ULAT, NLAT, ELAT, tarea
+      use ice_state, only: uvel, vvel, uvelE, vvelE, uvelN, vvelN, divu, shear
+      use ice_grid, only: ULAT, NLAT, ELAT, tarea, iceumask, iceemask, icenmask
 
       real (kind=dbl_kind), intent(in) :: &
          dt      ! time step
@@ -236,11 +211,10 @@
          nprocs, &  ! number of processors
          iblk       ! block index
 
-      character(len=*), parameter :: subname = '(init_dyn_shared)'
+      character(len=*), parameter :: subname = '(init_dyn)'
 
       call set_evp_parameters (dt)
-      ! allocate dyn shared (init_uvel,init_vvel)
-      call alloc_dyn_shared
+
       ! Set halo_dynbundle, this is empirical at this point, could become namelist
       halo_dynbundle = .true.
       nprocs = get_num_procs()
@@ -251,6 +225,14 @@
          write(nu_diag,*) 'dt_subcyle = ',dt/real(ndte,kind=dbl_kind)
          write(nu_diag,*) 'tdamp =', elasticDamp * dt
          write(nu_diag,*) 'halo_dynbundle =', halo_dynbundle
+      endif
+
+      allocate(fcor_blk(nx_block,ny_block,max_blocks))
+      allocate(DminTarea(nx_block,ny_block,max_blocks))
+
+      if (grid_ice == 'CD' .or. grid_ice == 'C') then
+         allocate(fcorE_blk(nx_block,ny_block,max_blocks))
+         allocate(fcorN_blk(nx_block,ny_block,max_blocks))
       endif
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j) SCHEDULE(runtime)
@@ -268,6 +250,11 @@
             vvelN(i,j,iblk) = c0
          endif
 
+         ! strain rates
+         divu (i,j,iblk) = c0
+         shear(i,j,iblk) = c0
+         rdg_conv (i,j,iblk) = c0
+         rdg_shear(i,j,iblk) = c0
 
          ! Coriolis parameter
          if (trim(coriolis) == 'constant') then
@@ -323,17 +310,17 @@
          endif
 
          ! ice extent mask on velocity points
-         iceUmask(i,j,iblk) = .false.
+         iceumask(i,j,iblk) = .false.
          if (grid_ice == 'CD' .or. grid_ice == 'C') then
-            iceEmask(i,j,iblk) = .false.
-            iceNmask(i,j,iblk) = .false.
+            iceemask(i,j,iblk) = .false.
+            icenmask(i,j,iblk) = .false.
          end if
       enddo                     ! i
       enddo                     ! j
       enddo                     ! iblk
       !$OMP END PARALLEL DO
 
-  end subroutine init_dyn_shared
+      end subroutine init_dyn
 
 !=======================================================================
 ! Set parameters needed for the evp dynamics.
@@ -407,7 +394,7 @@
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(out) :: &
          Tmass       ! total mass of ice and snow (kg/m^2)
 
-      logical (kind=log_kind), dimension (nx_block,ny_block), intent(out) :: &
+      integer (kind=int_kind), dimension (nx_block,ny_block), intent(out) :: &
          iceTmask    ! ice extent mask (T-cell)
 
       ! local variables
@@ -451,7 +438,7 @@
          !-----------------------------------------------------------------
          ! augmented mask (land + open ocean)
          !-----------------------------------------------------------------
-         iceTmask (i,j) = .false.
+         iceTmask (i,j) = 0
 
       enddo
       enddo
@@ -463,10 +450,10 @@
          if (tmphm(i-1,j+1) .or. tmphm(i,j+1) .or. tmphm(i+1,j+1) .or. &
              tmphm(i-1,j)   .or. tmphm(i,j)   .or. tmphm(i+1,j)   .or. &
              tmphm(i-1,j-1) .or. tmphm(i,j-1) .or. tmphm(i+1,j-1) ) then
-            iceTmask(i,j) = .true.
+            iceTmask(i,j) = 1
          endif
 
-         if (.not.Tmask(i,j)) iceTmask(i,j) = .false.
+         if (.not.Tmask(i,j)) iceTmask(i,j) = 0
 
       enddo
       enddo
@@ -517,8 +504,8 @@
          ilo,ihi,jlo,jhi       ! beginning and end of physical domain
 
       integer (kind=int_kind), intent(out) :: &
-         icellT  , & ! no. of cells where iceTmask = .true.
-         icellX      ! no. of cells where iceXmask = .true.
+         icellT  , & ! no. of cells where iceTmask = 1
+         icellX      ! no. of cells where iceXmask = 1
 
       integer (kind=int_kind), dimension (nx_block*ny_block), intent(out) :: &
          indxTi  , & ! compressed index in i-direction on T grid
@@ -529,7 +516,7 @@
       logical (kind=log_kind), dimension (nx_block,ny_block), intent(in) :: &
          Xmask       ! land/boundary mask, thickness (X-grid-cell)
 
-      logical (kind=log_kind), dimension (nx_block,ny_block), intent(in) :: &
+      integer (kind=int_kind), dimension (nx_block,ny_block), intent(in) :: &
          iceTmask    ! ice extent mask (T-cell)
 
       logical (kind=log_kind), dimension (nx_block,ny_block), intent(inout) :: &
@@ -603,7 +590,7 @@
          taubx    (i,j) = c0
          tauby    (i,j) = c0
 
-         if (.not.iceTmask(i,j)) then
+         if (iceTmask(i,j)==0) then
             stressp_1 (i,j) = c0
             stressp_2 (i,j) = c0
             stressp_3 (i,j) = c0
@@ -621,7 +608,7 @@
       enddo                     ! j
 
       !-----------------------------------------------------------------
-      ! Identify cells where iceTmask = .true.
+      ! Identify cells where iceTmask = 1
       ! Note: The icellT mask includes north and east ghost cells
       !       where stresses are needed.
       !-----------------------------------------------------------------
@@ -629,7 +616,7 @@
       icellT = 0
       do j = jlo, jhi+1
       do i = ilo, ihi+1
-         if (iceTmask(i,j)) then
+         if (iceTmask(i,j) == 1) then
             icellT = icellT + 1
             indxTi(icellT) = i
             indxTj(icellT) = j
@@ -742,7 +729,7 @@
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
-         icellU                ! total count when iceUmask is true
+         icellU                ! total count when iceumask is true
 
       integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
          indxUi  , & ! compressed index in i-direction
@@ -1179,7 +1166,7 @@
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
-         icellU                ! total count when iceUmask is true
+         icellU                ! total count when iceumask is true
 
       integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
          indxUi  , & ! compressed index in i-direction
@@ -1648,7 +1635,7 @@
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
-         icellT                ! no. of cells where iceTmask = .true.
+         icellT                ! no. of cells where iceTmask = 1
 
       integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
          indxTi   , & ! compressed index in i-direction
@@ -1746,7 +1733,7 @@
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
-         icellT                ! no. of cells where iceTmask = .true.
+         icellT                ! no. of cells where iceTmask = 1
 
       integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
          indxTi   , & ! compressed index in i-direction
@@ -1843,7 +1830,7 @@
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
-         icellT                ! no. of cells where iceTmask = .true.
+         icellT                ! no. of cells where iceTmask = 1
 
       integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
          indxTi   , & ! compressed index in i-direction

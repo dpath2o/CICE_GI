@@ -192,6 +192,11 @@
          lmask_n, & ! northern hemisphere mask
          lmask_s    ! southern hemisphere mask
 
+      logical (kind=log_kind), dimension (:,:,:), allocatable, public :: &
+         iceumask, &   ! ice extent mask (U-cell)
+         icenmask, &   ! ice extent mask (N-cell)
+         iceemask      ! ice extent mask (E-cell)
+
       real (kind=dbl_kind), dimension (:,:,:), allocatable, public :: &
          rndex_global       ! global index for local subdomain (dbl)
 
@@ -272,6 +277,7 @@
          umaskCD  (nx_block,ny_block,max_blocks), & ! land/boundary mask, velocity (U-cell)
          nmask    (nx_block,ny_block,max_blocks), & ! land/boundary mask (N-cell)
          emask    (nx_block,ny_block,max_blocks), & ! land/boundary mask (E-cell)
+         iceumask (nx_block,ny_block,max_blocks), & ! u mask for dynamics
          lmask_n  (nx_block,ny_block,max_blocks), & ! northern hemisphere mask
          lmask_s  (nx_block,ny_block,max_blocks), & ! southern hemisphere mask
          rndex_global(nx_block,ny_block,max_blocks), & ! global index for local subdomain (dbl)
@@ -292,6 +298,8 @@
 
       if (grid_ice == 'CD' .or. grid_ice == 'C') then
          allocate( &
+            iceemask (nx_block,ny_block,max_blocks), & ! e mask for dynamics
+            icenmask (nx_block,ny_block,max_blocks), & ! n mask for dynamics
             ratiodxN (nx_block,ny_block,max_blocks), &
             ratiodyE (nx_block,ny_block,max_blocks), &
             ratiodxNr(nx_block,ny_block,max_blocks), &
@@ -477,8 +485,6 @@
       ! lat, lon, cell widths, angle, land mask
       !-----------------------------------------------------------------
 
-      l_readCenter = .false.
-
       call icepack_query_parameters(pi_out=pi, pi2_out=pi2, puny_out=puny)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
@@ -507,26 +513,23 @@
       ! Diagnose OpenMP thread schedule, force order in output
       !-----------------------------------------------------------------
 
-! This code does not work in CESM. Needs to be investigated further.
-#ifndef CESMCOUPLED
 #if defined (_OPENMP)
-       !$OMP PARALLEL DO ORDERED PRIVATE(iblk) SCHEDULE(runtime)
-       do iblk = 1, nblocks
-          if (my_task == master_task) then
-             !$OMP ORDERED
-             if (iblk == 1) then
-                call omp_get_schedule(ompsk,ompcs)
-!               write(nu_diag,*) ''
-                write(nu_diag,*) subname,' OpenMP runtime thread schedule:'
-                write(nu_diag,*) subname,'  omp schedule = ',ompsk,ompcs
-             endif
-             write(nu_diag,*) subname,' block, thread = ',iblk,OMP_GET_THREAD_NUM()
-             call flush_fileunit(nu_diag)
-             !$OMP END ORDERED
-          endif
-       enddo
-       !$OMP END PARALLEL DO
-#endif
+      !$OMP PARALLEL DO ORDERED PRIVATE(iblk) SCHEDULE(runtime)
+      do iblk = 1, nblocks
+         if (my_task == master_task) then
+            !$OMP ORDERED
+            if (iblk == 1) then
+               call omp_get_schedule(ompsk,ompcs)
+               write(nu_diag,*) ''
+               write(nu_diag,*) subname,' OpenMP runtime thread schedule:'
+               write(nu_diag,*) subname,'  omp schedule = ',ompsk,ompcs
+            endif
+            write(nu_diag,*) subname,' block, thread = ',iblk,OMP_GET_THREAD_NUM()
+            call flush_fileunit(nu_diag)
+            !$OMP END ORDERED
+         endif
+      enddo
+      !$OMP END PARALLEL DO
 #endif
 
       !-----------------------------------------------------------------
@@ -952,6 +955,7 @@
       call ice_open_nc(kmt_file,fid_kmt)
 
       diag = .true.       ! write diagnostic info
+      l_readCenter = .false.
       !-----------------------------------------------------------------
       ! topography
       !-----------------------------------------------------------------
@@ -1396,15 +1400,15 @@
          ! original rectgrid defines latlon first
          call rectgrid_scale_dxdy
       else
-         ! rectgrid no grid spacing.
+         ! rectgrid no grid spacing. 
          ! original method with addition to use namelist lat/lon reference
-
+         
          if (my_task == master_task) then
             work_g1 = c0
             length = dxrect*cm_to_m/radius*rad_to_deg
-
+            
             work_g1(1,:) = lonrefrect ! reference lon from namelist
-
+            
             do j = 1, ny_global
             do i = 2, nx_global
                work_g1(i,j) = work_g1(i-1,j) + length   ! ULON
@@ -1416,13 +1420,13 @@
                              field_loc_NEcorner, field_type_scalar)
          call ice_HaloExtrapolate(ULON, distrb_info, &
                                   ew_boundary_type, ns_boundary_type)
-
+         
          if (my_task == master_task) then
             work_g1 = c0
             length = dyrect*cm_to_m/radius*rad_to_deg
-
+            
             work_g1(:,1) = latrefrect ! reference latitude from namelist
-
+            
             do i = 1, nx_global
             do j = 2, ny_global
                work_g1(i,j) = work_g1(i,j-1) + length   ! ULAT
@@ -1535,32 +1539,32 @@
       end subroutine rectgrid
 
 !=======================================================================
-
+      
       subroutine rectgrid_scale_dxdy
-
+        
         ! generate a variable spaced rectangluar grid.
         ! extend spacing from center of grid outward.
         use ice_constants, only: c0, c1, c2, radius, cm_to_m, &
              field_loc_center, field_loc_NEcorner, field_type_scalar
-
+        
         integer (kind=int_kind) :: &
              i, j, iblk, &
              imid, jmid, &
              center1, center2 ! array centers for expanding dx, dy
-
+      
         real (kind=dbl_kind) :: &
              length,  &
              rad_to_deg
 
         real (kind=dbl_kind), dimension(:,:), allocatable :: &
              work_g1
-
+        
         character(len=*), parameter :: subname = '(rectgrid_scale_dxdy)'
-
+        
         call icepack_query_parameters(rad_to_deg_out=rad_to_deg)
 
         allocate(work_g1(nx_global,ny_global))
-
+        
         ! determine dx spacing
         ! strategy: initialize with dxrect.
         ! if want to scale the grid, work from center outwards,
@@ -1568,51 +1572,51 @@
         ! this assumes dx varies in x direction only.
         ! (i.e, dx is the same across same y location)
         if (my_task == master_task) then
-
+           
            ! initialize with initial dxrect
            work_g1(:,:) = dxrect
-
+           
            ! check if nx is even or odd
            ! if even, middle 2 columns are center
            ! of odd,  middle 1 column is center
            if (mod(nx_global,2) == 0) then ! nx_global is even
-
+              
               ! with even number of x locatons,
               ! the center two y columns are center
               center1 = nx_global/2  ! integer math
               center2 = center1 + 1  ! integer math
-
+              
            else ! nx_global = odd
               ! only one center index. set center2=center1
               center1 = ceiling(real(nx_global/2),int_kind)
               center2 = center1
            endif
-
+           
            ! note loop over only half the x grid points (center1)-1
            ! working from the center outward.
            do j = 1, ny_global
            do i = 1, center1-1
               ! work from center1 to left
               work_g1(center1-i,j) = dxscale*work_g1(center1-i+1,j)
-
+              
               ! work from center2 to right
               work_g1(center2+i,j) = dxscale*work_g1(center2+i-1,j)
            enddo ! i
            enddo ! j
-
+           
         endif       ! my_task == master_task
-
-
+        
+        
         ! note work_g1 is converted to meters in primary_grid_lengths_HTN
         call primary_grid_lengths_HTN(work_g1)  ! dxU, dxT, dxN, dxE
-
+        
         ! make ULON array
         if (my_task == master_task) then
-
+           
            ! make first column reference lon in radians.
            ! the remaining work_g1 is still dx in meters
            work_g1(1,:) = lonrefrect/rad_to_deg ! radians
-
+           
            ! loop over remaining points and add spacing to successive
            ! x locations
            do j = 1, ny_global
@@ -1626,7 +1630,7 @@
                             field_loc_NEcorner, field_type_scalar)
         call ice_HaloExtrapolate(ULON, distrb_info, &
                                  ew_boundary_type, ns_boundary_type)
-
+        
         ! determine dy spacing
         ! strategy: initialize with dyrect.
         ! if want to scale the grid, work from center outwards,
@@ -1634,7 +1638,7 @@
         ! this assumes dy varies in y direction only.
         ! (i.e, dy is the same across same x location)
         if (my_task == master_task) then
-
+           
            ! initialize with initial dxrect
            work_g1(:,:) = dyrect
 
@@ -1642,25 +1646,25 @@
            ! if even, middle 2 rows are center
            ! of odd,  middle 1 row is center
            if (mod(ny_global,2) == 0) then ! ny_global is even
-
+              
               ! with even number of x locatons,
               ! the center two y columns are center
               center1 = ny_global/2  ! integer math
               center2 = center1 + 1  ! integer math
-
+              
            else ! ny_global = odd
               ! only one center index. set center2=center1
               center1 = ceiling(real(ny_global/2),int_kind)
               center2 = center1
            endif
-
+           
            ! note loop over only half the y grid points (center1)-1
            ! working from the center outward.
            do i = 1, nx_global
            do j = 1, center1-1
               ! work from center1 to bottom
               work_g1(i,center1-j) = dyscale*work_g1(i,center1-j+1)
-
+              
               ! work from center2 to top
               work_g1(i,center2+j) = dyscale*work_g1(i,center2+j-1)
            enddo ! i
@@ -1668,15 +1672,15 @@
         endif    ! mytask == master_task
         ! note work_g1 is converted to meters primary_grid_lengths_HTE
         call primary_grid_lengths_HTE(work_g1)  ! dyU, dyT, dyN, dyE
-
+        
         ! make ULAT array
         if (my_task == master_task) then
-
+           
            ! make first row reference lat in radians.
            ! the remaining work_g1 is still dy in meters
            work_g1(:,1) = latrefrect/rad_to_deg ! radians
-
-
+           
+           
            ! loop over remaining points and add spacing to successive
            ! x locations
            do j = 2, ny_global ! start from j=2. j=1 is latrefrect
@@ -1690,10 +1694,10 @@
                             field_loc_NEcorner, field_type_scalar)
         call ice_HaloExtrapolate(ULAT, distrb_info, &
                                  ew_boundary_type, ns_boundary_type)
-
+        
 
         deallocate(work_g1)
-
+        
       end subroutine rectgrid_scale_dxdy
 
 !=======================================================================
@@ -2683,23 +2687,13 @@
 
          ! state masked
          case('NE2US')
-            call grid_average_X2Y_2('NE2US',work1a,narea,npm,work1b,earea,epm,work2)
+            call grid_average_X2YS_2('NE2US',work1a,narea,npm,work1b,earea,epm,work2)
          case('EN2US')
-            call grid_average_X2Y_2('NE2US',work1b,narea,npm,work1a,earea,epm,work2)
+            call grid_average_X2YS_2('NE2US',work1b,narea,npm,work1a,earea,epm,work2)
          case('NE2TS')
-            call grid_average_X2Y_2('NE2TS',work1a,narea,npm,work1b,earea,epm,work2)
+            call grid_average_X2YS_2('NE2TS',work1a,narea,npm,work1b,earea,epm,work2)
          case('EN2TS')
-            call grid_average_X2Y_2('NE2TS',work1b,narea,npm,work1a,earea,epm,work2)
-
-         ! state unmasked
-         case('NE2UA')
-            call grid_average_X2Y_2('NE2UA',work1a,narea,npm,work1b,earea,epm,work2)
-         case('EN2UA')
-            call grid_average_X2Y_2('NE2UA',work1b,narea,npm,work1a,earea,epm,work2)
-         case('NE2TA')
-            call grid_average_X2Y_2('NE2TA',work1a,narea,npm,work1b,earea,epm,work2)
-         case('EN2TA')
-            call grid_average_X2Y_2('NE2TA',work1b,narea,npm,work1a,earea,epm,work2)
+            call grid_average_X2YS_2('NE2TS',work1b,narea,npm,work1a,earea,epm,work2)
 
          case default
             call abort_ice(subname//'ERROR: unknown X2Y '//trim(X2Y))
@@ -3594,6 +3588,36 @@
       end subroutine grid_average_X2YF
 
 !=======================================================================
+! Compute the minimum of adjacent values of a field at specific indices,
+! depending on the grid location (U, E, N)
+!
+      real(kind=dbl_kind) function grid_neighbor_min(field, i, j, grid_location) result(mini)
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
+         field    ! field defined at T point
+
+      integer (kind=int_kind), intent(in) :: &
+         i, j
+
+      character(len=*), intent(in) :: &
+         grid_location ! grid location at which to compute the minumum (U, E, N)
+
+      character(len=*), parameter :: subname = '(grid_neighbor_min)'
+
+      select case (trim(grid_location))
+         case('U')
+            mini = min(field(i,j), field(i+1,j), field(i,j+1), field(i+1,j+1))
+         case('E')
+            mini = min(field(i,j), field(i+1,j))
+         case('N')
+            mini = min(field(i,j), field(i,j+1))
+         case default
+            call abort_ice(subname // ' unknown grid_location: ' // grid_location)
+      end select
+
+      end function grid_neighbor_min
+
+!=======================================================================
 ! Shifts quantities from one grid to another
 ! State masked version, simple weighted averager
 ! NOTE: Input array includes ghost cells that must be updated before
@@ -3601,7 +3625,7 @@
 !
 ! author: T. Craig
 
-      subroutine grid_average_X2Y_2(dir,work1a,wght1a,mask1a,work1b,wght1b,mask1b,work2)
+      subroutine grid_average_X2YS_2(dir,work1a,wght1a,mask1a,work1b,wght1b,mask1b,work2)
 
       use ice_constants, only: c0
 
@@ -3628,7 +3652,7 @@
       type (block) :: &
          this_block           ! block information for current block
 
-      character(len=*), parameter :: subname = '(grid_average_X2Y_2)'
+      character(len=*), parameter :: subname = '(grid_average_X2YS_2)'
 
       work2(:,:,:) = c0
 
@@ -3684,91 +3708,11 @@
             enddo
             !$OMP END PARALLEL DO
 
-         case('NE2UA')
-            !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block,wtmp)
-            do iblk = 1, nblocks
-               this_block = get_block(blocks_ice(iblk),iblk)
-               ilo = this_block%ilo
-               ihi = this_block%ihi
-               jlo = this_block%jlo
-               jhi = this_block%jhi
-               do j = jlo, jhi
-               do i = ilo, ihi
-                  wtmp = (wght1a(i  ,j  ,iblk)  &
-                        + wght1a(i+1,j  ,iblk)  &
-                        + wght1b(i  ,j  ,iblk)  &
-                        + wght1b(i  ,j+1,iblk))
-                  if (wtmp /= c0) &
-                  work2(i,j,iblk) = (work1a(i  ,j  ,iblk)*wght1a(i  ,j  ,iblk)  &
-                                   + work1a(i+1,j  ,iblk)*wght1a(i+1,j  ,iblk)  &
-                                   + work1b(i  ,j  ,iblk)*wght1b(i  ,j  ,iblk)  &
-                                   + work1b(i  ,j+1,iblk)*wght1b(i  ,j+1,iblk)) &
-                                   / wtmp
-               enddo
-               enddo
-            enddo
-            !$OMP END PARALLEL DO
-
-         case('NE2TA')
-            !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block,wtmp)
-            do iblk = 1, nblocks
-               this_block = get_block(blocks_ice(iblk),iblk)
-               ilo = this_block%ilo
-               ihi = this_block%ihi
-               jlo = this_block%jlo
-               jhi = this_block%jhi
-               do j = jlo, jhi
-               do i = ilo, ihi
-                  wtmp = (wght1a(i  ,j-1,iblk)  &
-                        + wght1a(i  ,j  ,iblk)  &
-                        + wght1b(i-1,j  ,iblk)  &
-                        + wght1b(i  ,j  ,iblk))
-                  if (wtmp /= c0) &
-                  work2(i,j,iblk) = (work1a(i  ,j-1,iblk)*wght1a(i  ,j-1,iblk)  &
-                                   + work1a(i  ,j  ,iblk)*wght1a(i  ,j  ,iblk)  &
-                                   + work1b(i-1,j  ,iblk)*wght1b(i-1,j  ,iblk)  &
-                                   + work1b(i  ,j  ,iblk)*wght1b(i  ,j  ,iblk)) &
-                                   / wtmp
-               enddo
-               enddo
-            enddo
-            !$OMP END PARALLEL DO
-
          case default
             call abort_ice(subname//'ERROR: unknown option '//trim(dir))
          end select
 
-      end subroutine grid_average_X2Y_2
-
-!=======================================================================
-! Compute the minimum of adjacent values of a field at specific indices,
-! depending on the grid location (U, E, N)
-!
-      real(kind=dbl_kind) function grid_neighbor_min(field, i, j, grid_location) result(mini)
-
-      real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
-         field    ! field defined at T point
-
-      integer (kind=int_kind), intent(in) :: &
-         i, j
-
-      character(len=*), intent(in) :: &
-         grid_location ! grid location at which to compute the minumum (U, E, N)
-
-      character(len=*), parameter :: subname = '(grid_neighbor_min)'
-
-      select case (trim(grid_location))
-         case('U')
-            mini = min(field(i,j), field(i+1,j), field(i,j+1), field(i+1,j+1))
-         case('E')
-            mini = min(field(i,j), field(i+1,j))
-         case('N')
-            mini = min(field(i,j), field(i,j+1))
-         case default
-            call abort_ice(subname // ' unknown grid_location: ' // grid_location)
-      end select
-
-      end function grid_neighbor_min
+      end subroutine grid_average_X2YS_2
 
 !=======================================================================
 ! Compute the maximum of adjacent values of a field at specific indices,

@@ -274,6 +274,22 @@ cat >> ${jobfile} << EOFB
 #PBS -l walltime=${batchtime}
 EOFB
 
+else if (${ICE_MACHINE} =~ gadi1*) then
+cat >> ${jobfile} << EOFB
+#PBS -N ${ICE_CASENAME}
+#PBS -P ${acct}
+#PBS -q ${queue}
+#PBS -l walltime=${batchtime}
+#PBS -l ncpus=${ntasks}
+#PBS -l mem=500GB
+#PBS -l storage=gdata/gv90+gdata/xp65
+#PBS -l wd
+#PBS -j oe
+#PBS -W umask=022
+###PBS -M daniel.atwater@utas.edu.au
+###PBS -m abe
+EOFB
+
 else if (${ICE_MACHINE} =~ gaea*) then
 cat >> ${jobfile} << EOFB
 #SBATCH -J ${ICE_CASENAME}

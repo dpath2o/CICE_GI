@@ -25,7 +25,6 @@
           p001, p027, p055, p111, p166, p222, p25, p333
       use ice_fileunits, only: nu_diag, nu_dump_eap, nu_restart_eap
       use ice_exit, only: abort_ice
-      use ice_flux, only: rdg_shear
 !      use ice_timers, only:  &
 !          ice_timer_start, ice_timer_stop, &
 !          timer_tmp1, timer_tmp2, timer_tmp3, timer_tmp4, &
@@ -37,7 +36,8 @@
 
       implicit none
       private
-      public :: eap, init_eap, write_restart_eap, read_restart_eap
+      public :: eap, init_eap, write_restart_eap, read_restart_eap, &
+                alloc_dyn_eap
 
       ! Look-up table needed for calculating structure tensor
       integer (int_kind), parameter :: &
@@ -71,16 +71,42 @@
       real (kind=dbl_kind) :: &
          puny, pi, pi2, piq, pih
 
-      real (kind=dbl_kind), parameter :: &
-         kfriction = 0.45_dbl_kind
-
-      real (kind=dbl_kind), save :: &
-         invdx, invdy, invda, invsin
-
-
 !=======================================================================
 
       contains
+
+!=======================================================================
+! Allocate space for all variables
+!
+      subroutine alloc_dyn_eap
+
+      integer (int_kind) :: ierr
+
+      character(len=*), parameter :: subname = '(alloc_dyn_eap)'
+
+      allocate( a11_1        (nx_block,ny_block,max_blocks), &
+                a11_2        (nx_block,ny_block,max_blocks), &
+                a11_3        (nx_block,ny_block,max_blocks), &
+                a11_4        (nx_block,ny_block,max_blocks), &
+                a12_1        (nx_block,ny_block,max_blocks), &
+                a12_2        (nx_block,ny_block,max_blocks), &
+                a12_3        (nx_block,ny_block,max_blocks), &
+                a12_4        (nx_block,ny_block,max_blocks), &
+                e11          (nx_block,ny_block,max_blocks), &
+                e12          (nx_block,ny_block,max_blocks), &
+                e22          (nx_block,ny_block,max_blocks), &
+                yieldstress11(nx_block,ny_block,max_blocks), &
+                yieldstress12(nx_block,ny_block,max_blocks), &
+                yieldstress22(nx_block,ny_block,max_blocks), &
+                s11          (nx_block,ny_block,max_blocks), &
+                s12          (nx_block,ny_block,max_blocks), &
+                s22          (nx_block,ny_block,max_blocks), &
+                a11          (nx_block,ny_block,max_blocks), &
+                a12          (nx_block,ny_block,max_blocks), &
+                stat=ierr)
+      if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory')
+
+      end subroutine alloc_dyn_eap
 
 !=======================================================================
 ! Elastic-anisotropic-plastic dynamics driver
@@ -108,20 +134,19 @@
           dyn_prep1, dyn_prep2, stepu, dyn_finish, &
           seabed_stress_factor_LKD, seabed_stress_factor_prob, &
           seabed_stress_method, seabed_stress, &
-          stack_fields, unstack_fields, iceTmask, iceUmask, &
-          fld2, fld3, fld4
+          stack_fields, unstack_fields
       use ice_flux, only: rdg_conv, strairxT, strairyT, &
           strairxU, strairyU, uocn, vocn, ss_tltx, ss_tlty, fmU, &
           strtltxU, strtltyU, strocnxU, strocnyU, strintxU, strintyU, taubxU, taubyU, &
-          strax, stray, &
+          strocnxT, strocnyT, strax, stray, &
           TbU, hwater, &
           stressp_1, stressp_2, stressp_3, stressp_4, &
           stressm_1, stressm_2, stressm_3, stressm_4, &
           stress12_1, stress12_2, stress12_3, stress12_4
       use ice_grid, only: tmask, umask, dxT, dyT, dxhy, dyhx, cxp, cyp, cxm, cym, &
-          tarear, uarear, grid_average_X2Y, &
+          tarear, uarear, grid_average_X2Y, iceumask, &
           grid_atm_dynu, grid_atm_dynv, grid_ocn_dynu, grid_ocn_dynv
-      use ice_state, only: aice, aiU, vice, vsno, uvel, vvel, divu, shear, &
+      use ice_state, only: aice, vice, vsno, uvel, vvel, divu, shear, &
           aice_init, aice0, aicen, vicen, strength
       use ice_timers, only: timer_dynamics, timer_bound, &
           ice_timer_start, ice_timer_stop
@@ -138,28 +163,31 @@
          i, j, ij
 
       integer (kind=int_kind), dimension(max_blocks) :: &
-         icellT     , & ! no. of cells where iceTmask = .true.
-         icellU         ! no. of cells where iceUmask = .true.
+         icellt     , & ! no. of cells where icetmask = 1
+         icellu         ! no. of cells where iceumask = 1
 
       integer (kind=int_kind), dimension (nx_block*ny_block, max_blocks) :: &
-         indxTi     , & ! compressed index in i-direction
-         indxTj     , & ! compressed index in j-direction
-         indxUi     , & ! compressed index in i-direction
-         indxUj         ! compressed index in j-direction
+         indxti     , & ! compressed index in i-direction
+         indxtj     , & ! compressed index in j-direction
+         indxui     , & ! compressed index in i-direction
+         indxuj         ! compressed index in j-direction
 
       real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
          uocnU      , & ! i ocean current (m/s)
          vocnU      , & ! j ocean current (m/s)
          ss_tltxU   , & ! sea surface slope, x-direction (m/m)
          ss_tltyU   , & ! sea surface slope, y-direction (m/m)
-         cdn_ocnU   , & ! ocn drag coefficient
          tmass      , & ! total mass of ice and snow (kg/m^2)
          waterxU    , & ! for ocean stress calculation, x (m/s)
          wateryU    , & ! for ocean stress calculation, y (m/s)
          forcexU    , & ! work array: combined atm stress and ocn tilt, x
          forceyU    , & ! work array: combined atm stress and ocn tilt, y
+         aiU        , & ! ice fraction on u-grid
          umass      , & ! total mass of ice and snow (u grid)
          umassdti       ! mass of U-cell/dte (kg/m^2 s)
+
+      real (kind=dbl_kind), allocatable :: &
+         fld2(:,:,:,:)  ! temporary for stacking fields for halo update
 
       real (kind=dbl_kind), dimension(nx_block,ny_block,8):: &
          strtmp         ! stress combinations for momentum equation
@@ -168,6 +196,7 @@
          calc_strair
 
       integer (kind=int_kind), dimension (nx_block,ny_block,max_blocks) :: &
+         icetmask   , & ! ice extent mask (T-cell)
          halomask       ! ice mask for halo update
 
       type (ice_halo) :: &
@@ -175,6 +204,10 @@
 
       type (block) :: &
          this_block     ! block information for current block
+
+      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
+         work1      , & ! temporary
+         work2          ! temporary
 
       character(len=*), parameter :: subname = '(eap)'
 
@@ -184,6 +217,8 @@
       ! Initialize
       !-----------------------------------------------------------------
 
+      allocate(fld2(nx_block,ny_block,2,max_blocks))
+
        ! This call is needed only if dt changes during runtime.
 !      call set_evp_parameters (dt)
 
@@ -192,7 +227,7 @@
          do j = 1, ny_block
          do i = 1, nx_block
             rdg_conv (i,j,iblk) = c0
-            rdg_shear(i,j,iblk) = c0 ! always zero. Could be moved
+!           rdg_shear(i,j,iblk) = c0
             divu (i,j,iblk) = c0
             shear(i,j,iblk) = c0
             e11(i,j,iblk) = c0
@@ -221,13 +256,13 @@
                          ilo, ihi,           jlo, jhi,           &
                          aice    (:,:,iblk), vice    (:,:,iblk), &
                          vsno    (:,:,iblk), tmask   (:,:,iblk), &
-                         tmass   (:,:,iblk), iceTmask(:,:,iblk))
+                         tmass   (:,:,iblk), icetmask(:,:,iblk))
 
       enddo                     ! iblk
       !$OMP END PARALLEL DO
 
       call ice_timer_start(timer_bound)
-      call ice_HaloUpdate (iceTmask,          halo_info, &
+      call ice_HaloUpdate (icetmask,          halo_info, &
                            field_loc_center,  field_type_scalar)
       call ice_timer_stop(timer_bound)
 
@@ -235,18 +270,8 @@
       ! convert fields from T to U grid
       !-----------------------------------------------------------------
 
-      call stack_fields(tmass, aice_init, cdn_ocn, fld3)
-      call ice_HaloUpdate (fld3,             halo_info, &
-                           field_loc_center, field_type_scalar)
-      call stack_fields(uocn, vocn, ss_tltx, ss_tlty, fld4)
-      call ice_HaloUpdate (fld4,             halo_info, &
-                           field_loc_center, field_type_vector)
-      call unstack_fields(fld3, tmass, aice_init, cdn_ocn)
-      call unstack_fields(fld4, uocn, vocn, ss_tltx, ss_tlty)
-
-      call grid_average_X2Y('S', tmass    , 'T'          , umass   , 'U')
-      call grid_average_X2Y('S', aice_init, 'T'          , aiU     , 'U')
-      call grid_average_X2Y('S', cdn_ocn  , 'T'          , cdn_ocnU, 'U')
+      call grid_average_X2Y('F', tmass    , 'T'          , umass, 'U')
+      call grid_average_X2Y('F', aice_init, 'T'          , aiU  , 'U')
       call grid_average_X2Y('S', uocn     , grid_ocn_dynu, uocnU   , 'U')
       call grid_average_X2Y('S', vocn     , grid_ocn_dynv, vocnU   , 'U')
       call grid_average_X2Y('S', ss_tltx  , grid_ocn_dynu, ss_tltxU, 'U')
@@ -289,16 +314,16 @@
 
          call dyn_prep2 (nx_block,             ny_block,             &
                          ilo, ihi,             jlo, jhi,             &
-                         icellT        (iblk), icellU        (iblk), &
-                         indxTi      (:,iblk), indxTj      (:,iblk), &
-                         indxUi      (:,iblk), indxUj      (:,iblk), &
+                         icellt        (iblk), icellu        (iblk), &
+                         indxti      (:,iblk), indxtj      (:,iblk), &
+                         indxui      (:,iblk), indxuj      (:,iblk), &
                          aiU       (:,:,iblk), umass     (:,:,iblk), &
                          umassdti  (:,:,iblk), fcor_blk  (:,:,iblk), &
                          umask     (:,:,iblk),                       &
                          uocnU     (:,:,iblk), vocnU     (:,:,iblk), &
                          strairxU  (:,:,iblk), strairyU  (:,:,iblk), &
                          ss_tltxU  (:,:,iblk), ss_tltyU  (:,:,iblk), &
-                         iceTmask  (:,:,iblk), iceUmask  (:,:,iblk), &
+                         icetmask  (:,:,iblk), iceumask  (:,:,iblk), &
                          fmU       (:,:,iblk), dt,                   &
                          strtltxU  (:,:,iblk), strtltyU  (:,:,iblk), &
                          strocnxU  (:,:,iblk), strocnyU  (:,:,iblk), &
@@ -322,7 +347,7 @@
 
          do j = 1, ny_block
          do i = 1, nx_block
-            if (.not.iceTmask(i,j,iblk)) then
+            if (icetmask(i,j,iblk)==0) then
                if (tmask(i,j,iblk)) then
                   ! structure tensor
                   a11_1(i,j,iblk) = p5
@@ -339,7 +364,7 @@
                a12_2(i,j,iblk) = c0
                a12_3(i,j,iblk) = c0
                a12_4(i,j,iblk) = c0
-            endif                  ! iceTmask
+            endif                  ! icetmask
          enddo                     ! i
          enddo                     ! j
 
@@ -349,9 +374,9 @@
          !-----------------------------------------------------------------
 
          strength(:,:,iblk) = c0  ! initialize
-         do ij = 1, icellT(iblk)
-            i = indxTi(ij, iblk)
-            j = indxTj(ij, iblk)
+         do ij = 1, icellt(iblk)
+            i = indxti(ij, iblk)
+            j = indxtj(ij, iblk)
             call icepack_ice_strength(ncat=ncat,                 &
                                       aice     = aice    (i,j,  iblk), &
                                       vice     = vice    (i,j,  iblk), &
@@ -380,7 +405,7 @@
       if (maskhalo_dyn) then
          call ice_timer_start(timer_bound)
          halomask = 0
-         where (iceUmask) halomask = 1
+         where (iceumask) halomask = 1
          call ice_HaloUpdate (halomask,          halo_info, &
                               field_loc_center,  field_type_scalar)
          call ice_timer_stop(timer_bound)
@@ -396,8 +421,8 @@
             !$OMP PARALLEL DO PRIVATE(iblk)  SCHEDULE(runtime)
             do iblk = 1, nblocks
                call seabed_stress_factor_LKD (nx_block        , ny_block      , &
-                                              icellU    (iblk),                 &
-                                              indxUi  (:,iblk), indxUj(:,iblk), &
+                                              icellu    (iblk),                 &
+                                              indxui  (:,iblk), indxuj(:,iblk), &
                                               vice  (:,:,iblk), aice(:,:,iblk), &
                                               hwater(:,:,iblk), TbU (:,:,iblk))
             enddo
@@ -407,8 +432,8 @@
             !$OMP PARALLEL DO PRIVATE(iblk) SCHEDULE(runtime)
             do iblk = 1, nblocks
                call seabed_stress_factor_prob (nx_block         , ny_block         , &
-                                               icellT(iblk), indxTi(:,iblk), indxTj(:,iblk), &
-                                               icellU(iblk), indxUi(:,iblk), indxUj(:,iblk), &
+                                               icellt(iblk), indxti(:,iblk), indxtj(:,iblk), &
+                                               icellu(iblk), indxui(:,iblk), indxuj(:,iblk), &
                                                aicen(:,:,:,iblk), vicen(:,:,:,iblk), &
                                                hwater (:,:,iblk), TbU    (:,:,iblk))
             enddo
@@ -428,8 +453,8 @@
 !            call ice_timer_start(timer_tmp1,iblk)
             call stress_eap  (nx_block,             ny_block,             &
                               ksub,                 ndte,                 &
-                              icellT        (iblk),                       &
-                              indxTi      (:,iblk), indxTj      (:,iblk), &
+                              icellt        (iblk),                       &
+                              indxti      (:,iblk), indxtj      (:,iblk), &
                               arlx1i,               denom1,               &
                               uvel      (:,:,iblk), vvel      (:,:,iblk), &
                               dxT       (:,:,iblk), dyT       (:,:,iblk), &
@@ -466,8 +491,8 @@
 
 !            call ice_timer_start(timer_tmp2,iblk)
             call stepu (nx_block,            ny_block,            &
-                        icellU       (iblk), Cdn_ocnU (:,:,iblk), &
-                        indxUi     (:,iblk), indxUj     (:,iblk), &
+                        icellu       (iblk), Cdn_ocn  (:,:,iblk), &
+                        indxui     (:,iblk), indxuj     (:,iblk), &
                         aiU      (:,:,iblk), strtmp   (:,:,:),    &
                         uocnU    (:,:,iblk), vocnU    (:,:,iblk), &
                         waterxU  (:,:,iblk), wateryU  (:,:,iblk), &
@@ -488,8 +513,8 @@
 !            call ice_timer_start(timer_tmp3,iblk)
             if (mod(ksub,10) == 1) then ! only called every 10th timestep
             call stepa (nx_block            , ny_block            , &
-                        dtei                , icellT        (iblk), &
-                        indxTi      (:,iblk), indxTj      (:,iblk), &
+                        dtei                , icellt        (iblk), &
+                        indxti      (:,iblk), indxtj      (:,iblk), &
                         a11       (:,:,iblk), a12       (:,:,iblk), &
                         a11_1     (:,:,iblk), a11_2     (:,:,iblk), &
                         a11_3     (:,:,iblk), a11_4     (:,:,iblk), &
@@ -520,6 +545,7 @@
 
       enddo                     ! subcycling
 
+      deallocate(fld2)
       if (maskhalo_dyn) call ice_HaloDestroy(halo_info_mask)
 
       !-----------------------------------------------------------------
@@ -531,8 +557,8 @@
 
          call dyn_finish                               &
               (nx_block,           ny_block,           &
-               icellU      (iblk), Cdn_ocnU(:,:,iblk), &
-               indxUi    (:,iblk), indxUj    (:,iblk), &
+               icellu      (iblk), Cdn_ocn (:,:,iblk), &
+               indxui    (:,iblk), indxuj    (:,iblk), &
                uvel    (:,:,iblk), vvel    (:,:,iblk), &
                uocnU   (:,:,iblk), vocnU   (:,:,iblk), &
                aiU     (:,:,iblk), fmU     (:,:,iblk), &
@@ -540,6 +566,27 @@
 
       enddo
       !$OMP END PARALLEL DO
+
+      ! strocn computed on U, N, E as needed. Map strocn U divided by aiU to T
+      ! TODO: This should be done elsewhere as part of generalization?
+      ! conservation requires aiU be divided before averaging
+      work1 = c0
+      work2 = c0
+      !$OMP PARALLEL DO PRIVATE(iblk,ij,i,j)
+      do iblk = 1, nblocks
+      do ij = 1, icellu(iblk)
+         i = indxui(ij,iblk)
+         j = indxuj(ij,iblk)
+         work1(i,j,iblk) = strocnxU(i,j,iblk)/aiU(i,j,iblk)
+         work2(i,j,iblk) = strocnyU(i,j,iblk)/aiU(i,j,iblk)
+      enddo
+      enddo
+      call ice_HaloUpdate (work1,              halo_info, &
+                           field_loc_NEcorner, field_type_vector)
+      call ice_HaloUpdate (work2,              halo_info, &
+                           field_loc_NEcorner, field_type_vector)
+      call grid_average_X2Y('F', work1, 'U', strocnxT, 'T')    ! shift
+      call grid_average_X2Y('F', work2, 'U', strocnyT, 'T')
 
       call ice_timer_stop(timer_dynamics)    ! dynamics
 
@@ -553,8 +600,6 @@
 
       use ice_blocks, only: nx_block, ny_block
       use ice_domain, only: nblocks
-      use ice_calendar, only: dt_dyn
-      use ice_dyn_shared, only: init_dyn_shared
 
       ! local variables
 
@@ -566,7 +611,7 @@
          eps6 = 1.0e-6_dbl_kind
 
       integer (kind=int_kind) :: &
-         ix, iy, iz, ia, ierr
+         ix, iy, iz, ia
 
       integer (kind=int_kind), parameter :: &
          nz = 100
@@ -575,8 +620,6 @@
          ainit, xinit, yinit, zinit, &
          da, dx, dy, dz, &
          phi
-
-      real (kind=dbl_kind) :: invstressconviso
 
       character(len=*), parameter :: subname = '(init_eap)'
 
@@ -587,31 +630,6 @@
          file=__FILE__, line=__LINE__)
 
       phi = pi/c12 ! diamond shaped floe smaller angle (default phi = 30 deg)
-
-      call init_dyn_shared(dt_dyn)
-
-      allocate( a11_1        (nx_block,ny_block,max_blocks), &
-                a11_2        (nx_block,ny_block,max_blocks), &
-                a11_3        (nx_block,ny_block,max_blocks), &
-                a11_4        (nx_block,ny_block,max_blocks), &
-                a12_1        (nx_block,ny_block,max_blocks), &
-                a12_2        (nx_block,ny_block,max_blocks), &
-                a12_3        (nx_block,ny_block,max_blocks), &
-                a12_4        (nx_block,ny_block,max_blocks), &
-                e11          (nx_block,ny_block,max_blocks), &
-                e12          (nx_block,ny_block,max_blocks), &
-                e22          (nx_block,ny_block,max_blocks), &
-                yieldstress11(nx_block,ny_block,max_blocks), &
-                yieldstress12(nx_block,ny_block,max_blocks), &
-                yieldstress22(nx_block,ny_block,max_blocks), &
-                s11          (nx_block,ny_block,max_blocks), &
-                s12          (nx_block,ny_block,max_blocks), &
-                s22          (nx_block,ny_block,max_blocks), &
-                a11          (nx_block,ny_block,max_blocks), &
-                a12          (nx_block,ny_block,max_blocks), &
-                stat=ierr)
-      if (ierr/=0) call abort_ice(subname//' ERROR: Out of memory')
-
 
       !$OMP PARALLEL DO PRIVATE(iblk,i,j) SCHEDULE(runtime)
       do iblk = 1, nblocks
@@ -634,7 +652,6 @@
          a12_2        (i,j,iblk) = c0
          a12_3        (i,j,iblk) = c0
          a12_4        (i,j,iblk) = c0
-         rdg_shear    (i,j,iblk) = c0
       enddo                     ! i
       enddo                     ! j
       enddo                     ! iblk
@@ -652,9 +669,6 @@
       zinit = -pih
       dy = pi/real(ny_yield-1,kind=dbl_kind)
       yinit = -dy
-      invdx = c1/dx
-      invdy = c1/dy
-      invda = c1/da
 
       do ia=1,na_yield
       do ix=1,nx_yield
@@ -709,12 +723,6 @@
       enddo
       enddo
       enddo
-
-      ! Factor to maintain the same stress as in EVP (see Section 3)
-      ! Can be set to 1 otherwise
-
-      invstressconviso = c1/(c1+kfriction*kfriction)
-      invsin = c1/sin(pi2/c12) * invstressconviso
 
       end subroutine init_eap
 
@@ -1157,8 +1165,8 @@
 
       subroutine stress_eap  (nx_block,   ny_block,       &
                               ksub,       ndte,           &
-                              icellT,                     &
-                              indxTi,     indxTj,         &
+                              icellt,                     &
+                              indxti,     indxtj,         &
                               arlx1i,     denom1,         &
                               uvel,       vvel,           &
                               dxT,        dyT,            &
@@ -1190,11 +1198,11 @@
          nx_block, ny_block, & ! block dimensions
          ksub              , & ! subcycling step
          ndte              , & ! number of subcycles
-         icellT                ! no. of cells where iceTmask = .true.
+         icellt                ! no. of cells where icetmask = 1
 
       integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
-         indxTi   , & ! compressed index in i-direction
-         indxTj       ! compressed index in j-direction
+         indxti   , & ! compressed index in i-direction
+         indxtj       ! compressed index in j-direction
 
       real (kind=dbl_kind), intent(in) :: &
          arlx1i   , & ! dte/2T (original) or 1/alpha1 (revised)
@@ -1277,9 +1285,9 @@
 
       strtmp(:,:,:) = c0
 
-      do ij = 1, icellT
-         i = indxTi(ij)
-         j = indxTj(ij)
+      do ij = 1, icellt
+         i = indxti(ij)
+         j = indxtj(ij)
 
          !-----------------------------------------------------------------
          ! strain rates
@@ -1594,11 +1602,21 @@
          rotstemp11s, rotstemp12s, rotstemp22s, &
          sig11, sig12, sig22, &
          sgprm11, sgprm12, sgprm22, &
+         invstressconviso, &
          Angle_denom_gamma,  Angle_denom_alpha, &
          Tany_1, Tany_2, &
          x, y, dx, dy, da, &
          dtemp1, dtemp2, atempprime, &
          kxw, kyw, kaw
+
+      real (kind=dbl_kind), save :: &
+         invdx, invdy, invda, invsin
+
+      logical (kind=log_kind), save :: &
+         first_call = .true.
+
+      real (kind=dbl_kind), parameter :: &
+         kfriction = 0.45_dbl_kind
 
       ! tcraig, temporary, should be moved to namelist
       ! turns on interpolation in stress_rdg
@@ -1606,6 +1624,14 @@
          interpolate_stress_rdg = .false.
 
       character(len=*), parameter :: subname = '(update_stress_rdg)'
+
+      ! Factor to maintain the same stress as in EVP (see Section 3)
+      ! Can be set to 1 otherwise
+
+      if (first_call) then
+         invstressconviso = c1/(c1+kfriction*kfriction)
+         invsin = c1/sin(pi2/c12) * invstressconviso
+      endif
 
       ! compute eigenvalues, eigenvectors and angles for structure tensor, strain rates
 
@@ -1702,6 +1728,17 @@
 
       if (y > pi) y = y - pi
       if (y < 0)  y = y + pi
+
+      ! Now calculate updated stress tensor
+
+      if (first_call) then
+         dx   = pi/real(nx_yield-1,kind=dbl_kind)
+         dy   = pi/real(ny_yield-1,kind=dbl_kind)
+         da   = p5/real(na_yield-1,kind=dbl_kind)
+         invdx = c1/dx
+         invdy = c1/dy
+         invda = c1/da
+      endif
 
       if (interpolate_stress_rdg) then
 
@@ -1844,14 +1881,16 @@
                  + rotstemp22s*dtemp22
       endif
 
+      first_call = .false.
+
       end subroutine update_stress_rdg
 
 !=======================================================================
 ! Solves evolution equation for structure tensor (A19, A20)
 
       subroutine stepa  (nx_block,   ny_block,       &
-                         dtei,       icellT,         &
-                         indxTi,     indxTj,         &
+                         dtei,       icellt,         &
+                         indxti,     indxtj,         &
                          a11, a12,                   &
                          a11_1, a11_2, a11_3, a11_4, &
                          a12_1, a12_2, a12_3, a12_4, &
@@ -1864,14 +1903,14 @@
 
       integer (kind=int_kind), intent(in) :: &
          nx_block, ny_block, & ! block dimensions
-         icellT                ! no. of cells where iceTmask = .true.
+         icellt                ! no. of cells where icetmask = 1
 
       real (kind=dbl_kind), intent(in) :: &
          dtei        ! 1/dte, where dte is subcycling timestep (1/s)
 
       integer (kind=int_kind), dimension (nx_block*ny_block), intent(in) :: &
-         indxTi  , & ! compressed index in i-direction
-         indxTj      ! compressed index in j-direction
+         indxti  , & ! compressed index in i-direction
+         indxtj      ! compressed index in j-direction
 
       real (kind=dbl_kind), dimension (nx_block,ny_block), intent(in) :: &
          ! ice stress tensor (kg/s^2) in each corner of T cell
@@ -1901,9 +1940,9 @@
       dteikth = c1 / (dtei + kth)
       p5kth = p5 * kth
 
-      do ij = 1, icellT
-         i = indxTi(ij)
-         j = indxTj(ij)
+      do ij = 1, icellt
+         i = indxti(ij)
+         j = indxtj(ij)
 
          ! ne
          call calc_ffrac(stressp_1(i,j), stressm_1(i,j),  &

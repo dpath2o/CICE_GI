@@ -54,8 +54,7 @@
 
       real (kind=dbl_kind), dimension(:,:,:), allocatable, &
          public :: &
-         aice  , & ! concentration of ice on T grid
-         aiU   , & ! concentration of ice on U grid
+         aice  , & ! concentration of ice
          vice  , & ! volume per unit area of ice          (m)
          vsno      ! volume per unit area of snow         (m)
 
@@ -150,8 +149,7 @@
           file=__FILE__, line=__LINE__)
 
       allocate ( &
-         aice      (nx_block,ny_block,max_blocks) , & ! concentration of ice T grid
-         aiU       (nx_block,ny_block,max_blocks) , & ! concentration of ice U grid
+         aice      (nx_block,ny_block,max_blocks) , & ! concentration of ice
          vice      (nx_block,ny_block,max_blocks) , & ! volume per unit area of ice (m)
          vsno      (nx_block,ny_block,max_blocks) , & ! volume per unit area of snow (m)
          aice0     (nx_block,ny_block,max_blocks) , & ! concentration of open water
@@ -188,12 +186,6 @@
       n_trcr_strata = 0
       nt_strata = 0
       trcr_base = c0
-      aicen = c0
-      aicen_init = c0
-      vicen = c0
-      vicen_init = c0
-      vsnon = c0
-      vsnon_init = c0
 
       end subroutine alloc_state
 

@@ -1,0 +1,3 @@
+Thu Jan 22 08:41:11 AEDT 2026 ./cice.setup --case GI01 --mach gadi1 --env intel -p 1232x1 -g gx3 --acct gv90
+Thu Jan 22 08:41:11 AEDT 2026 ./cice.setup adding namelist modes set_nml.gx3
+Thu Jan 22 09:26:36 AEDT 2026 ./cice.build:GI01 build completed cice.bldlog.260122-092258

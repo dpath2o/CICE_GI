@@ -151,7 +151,11 @@
           solve_zsal, skl_bgc, z_tracers
 
       logical (kind=log_kind) :: &
+#ifdef UNDEPRECATE_CESMPONDS
+          tr_iage, tr_FY, tr_lvl, tr_iso, tr_aero, tr_pond_cesm, &
+#else
           tr_iage, tr_FY, tr_lvl, tr_iso, tr_aero, &
+#endif
           tr_pond_topo, tr_pond_lvl, tr_brine, tr_snow, &
           tr_bgc_N, tr_bgc_C, tr_bgc_Nit, &
           tr_bgc_Sil, tr_bgc_DMS, &
@@ -187,7 +191,11 @@
       call icepack_query_tracer_sizes(nbtrcr_out=nbtrcr)
       call icepack_query_tracer_flags( &
           tr_iage_out=tr_iage, tr_FY_out=tr_FY, tr_lvl_out=tr_lvl, &
+#ifdef UNDEPRECATE_CESMPONDS
+          tr_iso_out=tr_iso, tr_aero_out=tr_aero, tr_pond_cesm_out=tr_pond_cesm, &
+#else
           tr_iso_out=tr_iso, tr_aero_out=tr_aero, &
+#endif
           tr_pond_topo_out=tr_pond_topo, tr_pond_lvl_out=tr_pond_lvl, &
           tr_snow_out=tr_snow, tr_brine_out=tr_brine, &
           tr_bgc_N_out=tr_bgc_N, tr_bgc_C_out=tr_bgc_C, tr_bgc_Nit_out=tr_bgc_Nit, &
@@ -411,6 +419,13 @@
             call define_rest_field(File,'alvl',dims)
             call define_rest_field(File,'vlvl',dims)
          end if
+
+#ifdef UNDEPRECATE_CESMPONDS
+         if (tr_pond_cesm) then
+            call define_rest_field(File,'apnd',dims)
+            call define_rest_field(File,'hpnd',dims)
+         end if
+#endif
 
          if (tr_pond_topo) then
             call define_rest_field(File,'apnd',dims)
@@ -749,6 +764,10 @@
 !         if (ndim3 == ncat .and. ncat>1) then
          if (ndim3 == ncat .and. ndims == 3) then
             call pio_read_darray(File, vardesc, iodesc3d_ncat, work, status)
+!#ifndef CESM1_PIO
+!!           This only works for PIO2
+!            where (work == PIO_FILL_DOUBLE) work = c0
+!#endif
             if (present(field_loc)) then
                do n=1,ndim3
                   call ice_HaloUpdate (work(:,:,n,:), halo_info, &
@@ -758,6 +777,10 @@
 !         elseif (ndim3 == 1) then
          elseif (ndim3 == 1 .and. ndims == 2) then
             call pio_read_darray(File, vardesc, iodesc2d, work, status)
+!#ifndef CESM1_PIO
+!!           This only works for PIO2
+!            where (work == PIO_FILL_DOUBLE) work = c0
+!#endif
             if (present(field_loc)) then
                call ice_HaloUpdate (work(:,:,1,:), halo_info, &
                                     field_loc, field_type)
@@ -934,8 +957,11 @@
 
       query_field = .false.
 
-      status = pio_inq_varid(File,trim(vname),vardesc)
-      if (status == PIO_noerr) query_field = .true.
+      if (my_task == master_task) then
+         status = pio_inq_varid(File,trim(vname),vardesc)
+         if (status == PIO_noerr) query_field = .true.
+      endif
+      call broadcast_scalar(query_field,master_task)
 
       end function query_field
 

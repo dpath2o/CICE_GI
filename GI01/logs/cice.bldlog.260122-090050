@@ -1,0 +1,216 @@
+Building dependency for icepack_zsalinity.d
+Building dependency for icepack_zbgc_shared.d
+Building dependency for icepack_zbgc.d
+Building dependency for icepack_wavefracspec.d
+Building dependency for icepack_warnings.d
+Building dependency for icepack_tracers.d
+Building dependency for icepack_therm_vertical.d
+Building dependency for icepack_therm_shared.d
+Building dependency for icepack_therm_mushy.d
+Building dependency for icepack_therm_itd.d
+Building dependency for icepack_therm_bl99.d
+Building dependency for icepack_snow.d
+Building dependency for icepack_shortwave.d
+Building dependency for icepack_parameters.d
+Building dependency for icepack_orbital.d
+Building dependency for icepack_ocean.d
+Building dependency for icepack_mushy_physics.d
+Building dependency for icepack_meltpond_topo.d
+Building dependency for icepack_meltpond_lvl.d
+Building dependency for icepack_mechred.d
+Building dependency for icepack_kinds.d
+Building dependency for icepack_itd.d
+Building dependency for icepack_isotope.d
+Building dependency for icepack_intfc.d
+Building dependency for icepack_fsd.d
+Building dependency for icepack_flux.d
+Building dependency for icepack_firstyear.d
+Building dependency for icepack_brine.d
+Building dependency for icepack_atmo.d
+Building dependency for icepack_algae.d
+Building dependency for icepack_age.d
+Building dependency for icepack_aerosol.d
+Building dependency for ice_transport_remap.d
+Building dependency for ice_transport_driver.d
+Building dependency for ice_timers.d
+Building dependency for ice_step_mod.d
+Building dependency for ice_state.d
+Building dependency for ice_spacecurve.d
+Building dependency for ice_shr_reprosum86.d
+Building dependency for ice_restoring.d
+Building dependency for ice_restart_shared.d
+Building dependency for ice_restart_driver.d
+Building dependency for ice_restart_column.d
+Building dependency for ice_restart.d
+Building dependency for ice_reprosum.d
+Building dependency for ice_read_write.d
+Building dependency for ice_memusage_gptl.d
+Building dependency for ice_memusage.d
+Building dependency for ice_kinds_mod.d
+Building dependency for ice_init_column.d
+Building dependency for ice_init.d
+Building dependency for ice_history_write.d
+Building dependency for ice_history_snow.d
+Building dependency for ice_history_shared.d
+Building dependency for ice_history_pond.d
+Building dependency for ice_history_mechred.d
+Building dependency for ice_history_fsd.d
+Building dependency for ice_history_drag.d
+Building dependency for ice_history_bgc.d
+Building dependency for ice_history.d
+Building dependency for ice_grid.d
+Building dependency for ice_global_reductions.d
+Building dependency for ice_gather_scatter.d
+Building dependency for ice_forcing_bgc.d
+Building dependency for ice_forcing.d
+Building dependency for ice_flux_bgc.d
+Building dependency for ice_flux.d
+Building dependency for ice_fileunits.d
+Building dependency for ice_exit.d
+Building dependency for ice_dyn_vp.d
+Building dependency for ice_dyn_shared.d
+Building dependency for ice_dyn_evp_1d.d
+Building dependency for ice_dyn_evp.d
+Building dependency for ice_dyn_eap.d
+Building dependency for ice_domain_size.d
+Building dependency for ice_domain.d
+Building dependency for ice_distribution.d
+Building dependency for ice_diagnostics_bgc.d
+Building dependency for ice_diagnostics.d
+Building dependency for ice_constants.d
+Building dependency for ice_communicate.d
+Building dependency for ice_calendar.d
+Building dependency for ice_broadcast.d
+Building dependency for ice_boundary.d
+Building dependency for ice_blocks.d
+Building dependency for ice_arrays_column.d
+Building dependency for CICE_RunMod.d
+Building dependency for CICE_InitMod.d
+Building dependency for CICE_FinalMod.d
+Building dependency for CICE.d
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/icepack/columnphysics/icepack_kinds.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/icepack/columnphysics/icepack_warnings.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/icepack/columnphysics/icepack_parameters.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/icepack/columnphysics/icepack_tracers.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/icepack/columnphysics/icepack_mushy_physics.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/icepack/columnphysics/icepack_therm_shared.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/icepack/columnphysics/icepack_zbgc_shared.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/icepack/columnphysics/icepack_itd.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/icepack/columnphysics/icepack_fsd.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/icepack/columnphysics/icepack_mechred.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/icepack/columnphysics/icepack_wavefracspec.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/icepack/columnphysics/icepack_snow.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/icepack/columnphysics/icepack_orbital.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/icepack/columnphysics/icepack_shortwave.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/icepack/columnphysics/icepack_brine.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/icepack/columnphysics/icepack_aerosol.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/icepack/columnphysics/icepack_algae.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/icepack/columnphysics/icepack_zsalinity.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/icepack/columnphysics/icepack_zbgc.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/icepack/columnphysics/icepack_atmo.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/icepack/columnphysics/icepack_ocean.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/icepack/columnphysics/icepack_therm_bl99.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/icepack/columnphysics/icepack_therm_mushy.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/icepack/columnphysics/icepack_isotope.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/icepack/columnphysics/icepack_age.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/icepack/columnphysics/icepack_firstyear.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/icepack/columnphysics/icepack_flux.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/icepack/columnphysics/icepack_meltpond_lvl.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/icepack/columnphysics/icepack_meltpond_topo.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/icepack/columnphysics/icepack_therm_vertical.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/icepack/columnphysics/icepack_therm_itd.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/icepack/columnphysics/icepack_intfc.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/cicecore/shared/ice_kinds_mod.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/cicecore/shared/ice_fileunits.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/cicecore/cicedynB/infrastructure/comm/mpi/ice_exit.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/cicecore/cicedynB/infrastructure/ice_memusage.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/cicecore/shared/ice_domain_size.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/cicecore/cicedynB/infrastructure/comm/mpi/ice_communicate.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/cicecore/cicedynB/infrastructure/ice_blocks.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/cicecore/shared/ice_arrays_column.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/cicecore/shared/ice_constants.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/cicecore/shared/ice_spacecurve.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/cicecore/shared/ice_distribution.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/cicecore/cicedynB/infrastructure/comm/mpi/ice_gather_scatter.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/cicecore/cicedynB/infrastructure/comm/mpi/ice_reprosum.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/cicecore/cicedynB/infrastructure/comm/mpi/ice_global_reductions.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/cicecore/cicedynB/infrastructure/comm/mpi/ice_boundary.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/cicecore/cicedynB/infrastructure/comm/mpi/ice_broadcast.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/cicecore/cicedynB/infrastructure/ice_domain.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/cicecore/cicedynB/general/ice_state.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/cicecore/cicedynB/general/ice_flux_bgc.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/cicecore/shared/ice_calendar.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/cicecore/cicedynB/infrastructure/ice_read_write.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/cicecore/cicedynB/infrastructure/comm/mpi/ice_timers.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/cicecore/cicedynB/infrastructure/ice_grid.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/cicecore/cicedynB/general/ice_flux.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/cicecore/cicedynB/analysis/ice_diagnostics.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/cicecore/cicedynB/dynamics/ice_dyn_shared.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/cicecore/shared/ice_restart_shared.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/cicecore/cicedynB/infrastructure/io/io_netcdf/ice_restart.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/cicecore/cicedynB/dynamics/ice_dyn_eap.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/cicecore/cicedynB/dynamics/ice_dyn_evp_1d.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/cicecore/cicedynB/dynamics/ice_dyn_evp.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/cicecore/cicedynB/dynamics/ice_dyn_vp.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/cicecore/cicedynB/general/ice_forcing.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/cicecore/cicedynB/general/ice_forcing_bgc.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/cicecore/cicedynB/analysis/ice_history_shared.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/cicecore/cicedynB/analysis/ice_history_mechred.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/cicecore/cicedynB/analysis/ice_history_pond.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/cicecore/cicedynB/analysis/ice_history_snow.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/cicecore/cicedynB/analysis/ice_history_bgc.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/cicecore/cicedynB/analysis/ice_history_drag.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/cicecore/cicedynB/analysis/ice_history_fsd.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/cicecore/cicedynB/infrastructure/io/io_netcdf/ice_history_write.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/cicecore/cicedynB/analysis/ice_history.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/cicecore/shared/ice_restart_column.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/cicecore/cicedynB/dynamics/ice_transport_remap.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/cicecore/cicedynB/dynamics/ice_transport_driver.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/cicecore/cicedynB/infrastructure/ice_restoring.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/cicecore/cicedynB/general/ice_init.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/cicecore/shared/ice_init_column.F90
+mpif90 -c -fp-model precise -convert big_endian -assume byterecl -ftz -traceback -g -O2 -FR -DFORTRANUNDERSCORE  -DUSE_NETCDF -I.  -I/apps/netcdf/4.9.0/include /g/data/gv90/da1339/src/CICE_GI/cicecore/cicedynB/infrastructure/ice_restart_driver.F90
+/g/data/gv90/da1339/src/CICE_GI/cicecore/cicedynB/infrastructure/ice_restart_driver.F90(60): error #6580: Name in only-list does not exist or is not accessible.   [STROCNXT_IAVG]
+          strocnxT_iavg, strocnyT_iavg, sst, frzmlt, &
+----------^
+/g/data/gv90/da1339/src/CICE_GI/cicecore/cicedynB/infrastructure/ice_restart_driver.F90(60): error #6580: Name in only-list does not exist or is not accessible.   [STROCNYT_IAVG]
+          strocnxT_iavg, strocnyT_iavg, sst, frzmlt, &
+-------------------------^
+/g/data/gv90/da1339/src/CICE_GI/cicecore/cicedynB/infrastructure/ice_restart_driver.F90(289): error #6580: Name in only-list does not exist or is not accessible.   [STROCNXT_IAVG]
+          strocnxT_iavg, strocnyT_iavg, sst, frzmlt, &
+----------^
+/g/data/gv90/da1339/src/CICE_GI/cicecore/cicedynB/infrastructure/ice_restart_driver.F90(289): error #6580: Name in only-list does not exist or is not accessible.   [STROCNYT_IAVG]
+          strocnxT_iavg, strocnyT_iavg, sst, frzmlt, &
+-------------------------^
+/g/data/gv90/da1339/src/CICE_GI/cicecore/cicedynB/infrastructure/ice_restart_driver.F90(739): error #6580: Name in only-list does not exist or is not accessible.   [STROCNXT_IAVG]
+          strocnxT_iavg, strocnyT_iavg, sst, frzmlt, &
+----------^
+/g/data/gv90/da1339/src/CICE_GI/cicecore/cicedynB/infrastructure/ice_restart_driver.F90(739): error #6580: Name in only-list does not exist or is not accessible.   [STROCNYT_IAVG]
+          strocnxT_iavg, strocnyT_iavg, sst, frzmlt, &
+-------------------------^
+/g/data/gv90/da1339/src/CICE_GI/cicecore/cicedynB/infrastructure/ice_restart_driver.F90(179): error #6404: This name does not have a type, and must have an explicit type.   [STROCNXT_IAVG]
+      call write_restart_field(nu_dump,0,strocnxT_iavg,'ruf8','strocnxT',1,diag)
+-----------------------------------------^
+/g/data/gv90/da1339/src/CICE_GI/cicecore/cicedynB/infrastructure/ice_restart_driver.F90(180): error #6404: This name does not have a type, and must have an explicit type.   [STROCNYT_IAVG]
+      call write_restart_field(nu_dump,0,strocnyT_iavg,'ruf8','strocnyT',1,diag)
+-----------------------------------------^
+/g/data/gv90/da1339/src/CICE_GI/cicecore/cicedynB/infrastructure/ice_restart_driver.F90(439): error #6404: This name does not have a type, and must have an explicit type.   [STROCNXT_IAVG]
+      call read_restart_field(nu_restart,0,strocnxT_iavg,'ruf8', &
+-------------------------------------------^
+/g/data/gv90/da1339/src/CICE_GI/cicecore/cicedynB/infrastructure/ice_restart_driver.F90(441): error #6404: This name does not have a type, and must have an explicit type.   [STROCNYT_IAVG]
+      call read_restart_field(nu_restart,0,strocnyT_iavg,'ruf8', &
+-------------------------------------------^
+/g/data/gv90/da1339/src/CICE_GI/cicecore/cicedynB/infrastructure/ice_restart_driver.F90(904): error #6404: This name does not have a type, and must have an explicit type.   [STROCNXT_IAVG]
+      call ice_read(nu_restart,0,strocnxT_iavg,'ruf8',diag, &
+---------------------------------^
+/g/data/gv90/da1339/src/CICE_GI/cicecore/cicedynB/infrastructure/ice_restart_driver.F90(904): error #6285: There is no matching specific subroutine for this generic subroutine call.   [ICE_READ]
+      call ice_read(nu_restart,0,strocnxT_iavg,'ruf8',diag, &
+-----------^
+/g/data/gv90/da1339/src/CICE_GI/cicecore/cicedynB/infrastructure/ice_restart_driver.F90(906): error #6404: This name does not have a type, and must have an explicit type.   [STROCNYT_IAVG]
+      call ice_read(nu_restart,0,strocnyT_iavg,'ruf8',diag, &
+---------------------------------^
+/g/data/gv90/da1339/src/CICE_GI/cicecore/cicedynB/infrastructure/ice_restart_driver.F90(906): error #6285: There is no matching specific subroutine for this generic subroutine call.   [ICE_READ]
+      call ice_read(nu_restart,0,strocnyT_iavg,'ruf8',diag, &
+-----------^
+compilation aborted for /g/data/gv90/da1339/src/CICE_GI/cicecore/cicedynB/infrastructure/ice_restart_driver.F90 (code 1)
+gmake: *** [/g/data/gv90/da1339/src/CICE_GI/GI01/Makefile:182: ice_restart_driver.o] Error 1
