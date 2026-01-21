@@ -5,9 +5,9 @@ setenv ICE_SANDBOX  /g/data/gv90/da1339/src/CICE_GI
 setenv ICE_MACHINE  gadi1  
 setenv ICE_ENVNAME  intel  
 setenv ICE_MACHCOMP  gadi1_intel  
-setenv ICE_SCRIPTS  /g/data/gv90/da1339/src/CICE_GI/configuration/scripts  
-setenv ICE_CASEDIR  /g/data/gv90/da1339/src/CICE_GI/GI01  
-setenv ICE_RUNDIR  /g/data/gv90/da1339/cice-dirs/runs/GI01  
+setenv ICE_SCRIPTS   $HOME/AFIM/src/CICE_GI/configuration/scripts  
+setenv ICE_CASEDIR   $HOME/AFIM/src/CICE_GI/GI01  
+setenv ICE_RUNDIR    /g/data/gv90/da1339/cice-dirs/runs/GI01  
 setenv ICE_OBJDIR     ${ICE_RUNDIR}/compile
 setenv ICE_RSTDIR     ${ICE_RUNDIR}/restart
 setenv ICE_HSTDIR     ${ICE_RUNDIR}/history

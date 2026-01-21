@@ -1,3 +1,25 @@
 Thu Jan 22 08:41:11 AEDT 2026 ./cice.setup --case GI01 --mach gadi1 --env intel -p 1232x1 -g gx3 --acct gv90
 Thu Jan 22 08:41:11 AEDT 2026 ./cice.setup adding namelist modes set_nml.gx3
 Thu Jan 22 09:26:36 AEDT 2026 ./cice.build:GI01 build completed cice.bldlog.260122-092258
+Thu Jan 22 09:29:59 AEDT 2026 ./cice.submit: GI01 job submitted
+Thu Jan 22 09:30:50 AEDT 2026 /local/spool/pbs/mom_priv/jobs/158906782.gadi-pbs.SC: CICE output file is /g/data/gv90/da1339/src/CICE_GI/GI01/logs/cice.runlog.260122-093050
+Thu Jan 22 09:30:50 AEDT 2026 /local/spool/pbs/mom_priv/jobs/158906782.gadi-pbs.SC: CICE output file is /g/data/gv90/da1339/src/CICE_GI/GI01/logs/ice_diag.d
+Thu Jan 22 09:30:50 AEDT 2026 /local/spool/pbs/mom_priv/jobs/158906782.gadi-pbs.SC: CICE run did NOT complete
+Thu Jan 22 09:40:44 AEDT 2026 ./cice.build:GI01 build completed cice.bldlog.260122-093708
+Thu Jan 22 09:43:18 AEDT 2026 ./cice.submit: GI01 job submitted
+Thu Jan 22 09:44:27 AEDT 2026 /local/spool/pbs/mom_priv/jobs/158908479.gadi-pbs.SC: CICE output file is /home/581/da1339/AFIM/src/CICE_GI/GI01/logs/cice.runlog.260122-094427
+Thu Jan 22 09:44:27 AEDT 2026 /local/spool/pbs/mom_priv/jobs/158908479.gadi-pbs.SC: CICE output file is /home/581/da1339/AFIM/src/CICE_GI/GI01/logs/ice_diag.d
+Thu Jan 22 09:44:27 AEDT 2026 /local/spool/pbs/mom_priv/jobs/158908479.gadi-pbs.SC: CICE run did NOT complete
+Thu Jan 22 09:48:02 AEDT 2026 ./cice.submit: GI01 job submitted
+Thu Jan 22 09:48:46 AEDT 2026 /local/spool/pbs/mom_priv/jobs/158908972.gadi-pbs.SC: CICE output file is /home/581/da1339/AFIM/src/CICE_GI/GI01/logs/cice.runlog.260122-094846
+Thu Jan 22 09:48:47 AEDT 2026 /local/spool/pbs/mom_priv/jobs/158908972.gadi-pbs.SC: CICE output file is /home/581/da1339/AFIM/src/CICE_GI/GI01/logs/ice_diag.d
+Thu Jan 22 09:48:47 AEDT 2026 /local/spool/pbs/mom_priv/jobs/158908972.gadi-pbs.SC: CICE run did NOT complete
+Thu Jan 22 09:51:12 AEDT 2026 ./cice.submit: GI01 job submitted
+Thu Jan 22 09:51:56 AEDT 2026 /local/spool/pbs/mom_priv/jobs/158909176.gadi-pbs.SC: CICE output file is /home/581/da1339/AFIM/src/CICE_GI/GI01/logs/cice.runlog.260122-095155
+Thu Jan 22 09:51:56 AEDT 2026 /local/spool/pbs/mom_priv/jobs/158909176.gadi-pbs.SC: CICE output file is /home/581/da1339/AFIM/src/CICE_GI/GI01/logs/ice_diag.d
+Thu Jan 22 09:51:56 AEDT 2026 /local/spool/pbs/mom_priv/jobs/158909176.gadi-pbs.SC: CICE run did NOT complete
+Thu Jan 22 10:03:45 AEDT 2026 ./cice.submit: GI01 job submitted
+Thu Jan 22 10:05:04 AEDT 2026 /local/spool/pbs/mom_priv/jobs/158909888.gadi-pbs.SC: CICE output file is /home/581/da1339/AFIM/src/CICE_GI/GI01/logs/cice.runlog.260122-100429
+Thu Jan 22 10:05:04 AEDT 2026 /local/spool/pbs/mom_priv/jobs/158909888.gadi-pbs.SC: CICE output file is /home/581/da1339/AFIM/src/CICE_GI/GI01/logs/ice_diag.d
+Thu Jan 22 10:05:04 AEDT 2026 /local/spool/pbs/mom_priv/jobs/158909888.gadi-pbs.SC: CICE run completed successfully
+Thu Jan 22 10:10:34 AEDT 2026 ./cice.submit: GI01 job submitted

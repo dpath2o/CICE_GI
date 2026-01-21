@@ -8,8 +8,8 @@
     istep0            = 0
     dt                = 1800
     ndtd              = 1
-    npt_unit = 'y'
-    npt = 1
+    npt_unit = 'm'
+    npt = 12
     runtype = 'initial'
     ice_ic            = 'none'
     restart_ext       = .false.
