@@ -32,10 +32,7 @@
       use ice_blocks, only: nx_block, ny_block
       use ice_calendar, only: istep1
       use ice_communicate, only: my_task
-      use ice_constants, only: c0, c1, c2, c12, p333, p4, p5, p6, &
-          eps13, eps16, &
-          field_loc_center, field_type_scalar, &
-          field_loc_NEcorner, field_type_vector
+      use ice_constants, only: c0, c1, c2, c12, p333, p4, p5, p6, eps13, eps16, field_loc_center, field_type_scalar, field_loc_NEcorner, field_type_vector
       use ice_diagnostics, only: diagnostic_abort
       use ice_domain_size, only: max_blocks, ncat
       use ice_fileunits, only: nu_diag
@@ -557,7 +554,7 @@
                                istop,            jstop)
 
          if (l_stop) then
-            call diagnostic_abort(istop,jstop,iblk,'bad departure points')
+            ! call diagnostic_abort(istop,jstop,iblk,'bad departure points')
          endif
 
       enddo                     ! iblk
@@ -633,7 +630,6 @@
 
       endif  ! nghost
 
-      ! tcraig, this OMP loop sometimes fails with cce/14.0.3, compiler bug??
       !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block,n,  &
       !$OMP                     edgearea_e,edgearea_n,edge,iflux,jflux, &
       !$OMP                     xp,yp,indxing,indxjng,mflxe,mflxn, &
@@ -827,6 +823,7 @@
                              mm   (:,:,0,iblk))
 
          if (l_stop) then
+            write (nu_diag,*) 'NEGATIVE AREA -- OPEN WATER'
             call diagnostic_abort(istop,jstop,iblk,'negative area (open water)')
          endif
 
@@ -845,10 +842,11 @@
                                tm    (:,:,:,n,iblk))
 
             if (l_stop) then
-               write (nu_diag,*) 'istep1, my_task, iblk, cat =',     &
-                                  istep1, my_task, iblk, n
+               write (nu_diag,*) 'NEGATIVE AREA -- SEA ICE'
+               write (nu_diag,*) 'istep1, my_task, iblk, cat =', istep1, my_task, iblk, n
                call diagnostic_abort(istop,jstop,iblk,'negative area (ice)')
             endif
+
          enddo                  ! n
 
       enddo                     ! iblk
@@ -1566,13 +1564,10 @@
 
       dpx(:,:) = c0
       dpy(:,:) = c0
-
       do j = jlo-nghost+1, jhi+nghost-1
       do i = ilo-nghost+1, ihi+nghost-1
-
          dpx(i,j) = -dt*uvel(i,j)
          dpy(i,j) = -dt*vvel(i,j)
-
          ! Check for values out of bounds (more than one grid cell away)
          if (dpx(i,j) < -HTN(i,j) .or. dpx(i,j) > HTN(i+1,j) .or.   &
              dpy(i,j) < -HTE(i,j) .or. dpy(i,j) > HTE(i,j+1)) then
@@ -1580,7 +1575,6 @@
             istop = i
             jstop = j
          endif
-
       enddo
       enddo
 
@@ -1588,43 +1582,40 @@
          i = istop
          j = jstop
          write (nu_diag,*) ' '
-         write (nu_diag,*)   &
-                    'Warning: Departure points out of bounds in remap'
-         write (nu_diag,*) 'my_task, i, j =', my_task, i, j
-         write (nu_diag,*) 'dpx, dpy =', dpx(i,j), dpy(i,j)
-         write (nu_diag,*) 'HTN(i,j), HTN(i+1,j) =', HTN(i,j), HTN(i+1,j)
-         write (nu_diag,*) 'HTE(i,j), HTE(i,j+1) =', HTE(i,j), HTE(i,j+1)
-         return
+         write (nu_diag,*) 'Warning: Departure points out of bounds in remap'
+         write (nu_diag,*) 'my_task, i, j        : ', my_task, i, j
+         write (nu_diag,*) 'dpx = -dt*uvel(i,j)  : ', dpx(i,j)
+         write (nu_diag,*) 'dpy = -dt*vvel(i,j)  : ', dpy(i,j)
+         write (nu_diag,*) 'dt                   : ', dt
+         write (nu_diag,*) 'uvel(i,j)            : ', uvel(i,j)
+         write (nu_diag,*) 'vvel(i,j)            : ', vvel(i,j)
+         write (nu_diag,*) 'HTN(i,j), HTN(i+1,j) : ', HTN(i,j), HTN(i+1,j)
+         write (nu_diag,*) 'HTE(i,j), HTE(i,j+1) : ', HTE(i,j), HTE(i,j+1)
+         write (nu_diag,*) ' '
+         ! return
       endif
 
       if (l_dp_midpt) then ! find dep pts using corrected midpt velocity
-
          do j = jlo-nghost+1, jhi+nghost-1
          do i = ilo-nghost+1, ihi+nghost-1
             if (uvel(i,j)/=c0 .or. vvel(i,j)/=c0) then
-
                !-------------------------------------------------------------------
                ! Scale departure points to coordinate system in which grid cells
                ! have sides of unit length.
                !-------------------------------------------------------------------
-
                dpx(i,j) = dpx(i,j) / dxu(i,j)
                dpy(i,j) = dpy(i,j) / dyu(i,j)
-
                !-------------------------------------------------------------------
                ! Estimate midpoint of backward trajectory relative to corner (i,j).
                !-------------------------------------------------------------------
-
                mpx = p5 * dpx(i,j)
                mpy = p5 * dpy(i,j)
-
                !-------------------------------------------------------------------
                ! Determine the indices (i2,j2) of the cell where the trajectory lies.
                ! Compute the coordinates of the midpoint of the backward trajectory
                !  relative to the cell center in a stretch coordinate system
                !  with vertices at (1/2, 1/2), (1/2, -1/2), etc.
                !-------------------------------------------------------------------
-
                if (mpx >= c0 .and. mpy >= c0) then    ! cell (i+1,j+1)
                   i2 = i+1
                   j2 = j+1
@@ -1646,37 +1637,28 @@
                   mpxt = mpx + p5
                   mpyt = mpy - p5
                endif
-
                !-------------------------------------------------------------------
                ! Using a bilinear approximation, estimate the velocity at the
                ! trajectory midpoint in the (i2,j2) reference frame.
                !-------------------------------------------------------------------
-
                ump = uvel(i2-1,j2-1)*(mpxt-p5)*(mpyt-p5)     &
                    - uvel(i2,  j2-1)*(mpxt+p5)*(mpyt-p5)     &
                    + uvel(i2,  j2  )*(mpxt+p5)*(mpyt+p5)     &
                    - uvel(i2-1,j2  )*(mpxt-p5)*(mpyt+p5)
-
                vmp = vvel(i2-1,j2-1)*(mpxt-p5)*(mpyt-p5)     &
                    - vvel(i2,  j2-1)*(mpxt+p5)*(mpyt-p5)     &
                    + vvel(i2,  j2  )*(mpxt+p5)*(mpyt+p5)     &
                    - vvel(i2-1,j2  )*(mpxt-p5)*(mpyt+p5)
-
                !-------------------------------------------------------------------
                ! Use the midpoint velocity to estimate the coordinates of the
                !  departure point relative to corner (i,j).
                !-------------------------------------------------------------------
-
                dpx(i,j) = -dt * ump
                dpy(i,j) = -dt * vmp
-
             endif               ! nonzero velocity
-
          enddo                 ! i
          enddo                 ! j
-
       endif                  ! l_dp_midpt
-
       end subroutine departure_points
 
 !=======================================================================

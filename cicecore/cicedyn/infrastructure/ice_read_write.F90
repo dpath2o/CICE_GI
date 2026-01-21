@@ -1039,32 +1039,22 @@
 ! Adapted by Alison McLaren, Met Office from ice_open
 
       subroutine ice_open_nc(filename, fid)
-
       character (char_len_long), intent(in) :: &
            filename      ! netCDF filename
-
       integer (kind=int_kind), intent(out) :: &
            fid           ! unit number
-
       ! local variables
-
       character(len=*), parameter :: subname = '(ice_open_nc)'
-
 #ifdef USE_NETCDF
       integer (kind=int_kind) :: &
         status        ! status variable from netCDF routine
-
       if (my_task == master_task) then
-
           status = nf90_open(filename, NF90_NOWRITE, fid)
           if (status /= nf90_noerr) then
              !write(nu_diag,*) subname,' NF90_STRERROR = ',trim(nf90_strerror(status))
-             call abort_ice(subname//' ERROR: Cannot open '//trim(filename), &
-                file=__FILE__, line=__LINE__)
+             call abort_ice(subname//' ERROR: Cannot open '//trim(filename), file=__FILE__, line=__LINE__)
           endif
-
       endif                      ! my_task = master_task
-
 #else
       call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined for '//trim(filename), &
          file=__FILE__, line=__LINE__)
@@ -1137,7 +1127,6 @@
          work_g2
 
       lnrec = nrec
-
       if (orca_halogrid .and. .not. present(restart_ext)) then
          if (my_task == master_task) then
             allocate(work_g2(nx_global+2,ny_global+1))
@@ -1146,41 +1135,32 @@
          endif
          work_g2(:,:) = c0
       endif
-
       nx = nx_global
       ny = ny_global
-
       work = c0 ! to satisfy intent(out) attribute
-
       if (present(restart_ext)) then
          if (restart_ext) then
             nx = nx_global + 2*nghost
             ny = ny_global + 2*nghost
          endif
       endif
-
       if (my_task == master_task) then
          allocate(work_g1(nx,ny))
       else
          allocate(work_g1(1,1))   ! to save memory
       endif
-
       if (my_task == master_task) then
-
         !-------------------------------------------------------------
         ! Find out ID of required variable
         !-------------------------------------------------------------
-
          status = nf90_inq_varid(fid, trim(varname), varid)
          if (status /= nf90_noerr) then
-            call abort_ice(subname//' ERROR: Cannot find variable '//trim(varname), &
-               file=__FILE__, line=__LINE__)
+            call abort_ice(subname//' ERROR: Cannot find variable '//trim(varname), file=__FILE__, line=__LINE__)
          endif
 
         !-------------------------------------------------------------
         ! Check nrec axis size
         !-------------------------------------------------------------
-
          status = nf90_inquire_variable(fid, varid, ndims=ndims, dimids=dimids)
          if (status /= nf90_noerr) then
             call abort_ice(subname//' ERROR: inquire variable dimids '//trim(varname), &
@@ -1202,7 +1182,6 @@
        !--------------------------------------------------------------
        ! Read global array
        !--------------------------------------------------------------
-
          if (orca_halogrid .and. .not. present(restart_ext)) then
             status = nf90_get_var( fid, varid, work_g2, &
                start=(/1,1,lnrec/), &
@@ -1221,24 +1200,20 @@
                   file=__FILE__, line=__LINE__)
             endif
          endif
-
          status = nf90_get_att(fid, varid, "_FillValue", missingvalue)
       endif                     ! my_task = master_task
 
     !-------------------------------------------------------------------
     ! optional diagnostics
     !-------------------------------------------------------------------
-
       if (my_task==master_task .and. diag) then
-           write(nu_diag,'(2a,i8,a,i8,2a)') &
-             subname,' fid= ',fid, ', lnrec = ',lnrec, &
-             ', varname = ',trim(varname)
-!          status = nf90_inquire(fid, nDimensions=ndim, nVariables=nvar)
-!          write(nu_diag,*) subname,' ndim= ',ndim,', nvar= ',nvar
-!          do id=1,ndim
-!            status = nf90_inquire_dimension(fid,id,name=dimname,len=dimlen)
-!            write(nu_diag,*) subname,' Dim name = ',trim(dimname),', size = ',dimlen
-!         enddo
+         write(nu_diag,'(2a,i8,a,i8,2a)') subname,' fid= ',fid, ', lnrec = ',lnrec, ', varname = ',trim(varname)
+         ! status = nf90_inquire(fid, nDimensions=ndim, nVariables=nvar)
+         ! write(nu_diag,*) subname,' ndim= ',ndim,', nvar= ',nvar
+         ! do id=1,ndim
+         !    status = nf90_inquire_dimension(fid,id,name=dimname,len=dimlen)
+         !    write(nu_diag,*) subname,' Dim name = ',trim(dimname),', size = ',dimlen
+         ! enddo
          amin = minval(work_g1)
          amax = maxval(work_g1, mask = work_g1 /= missingvalue)
          asum = sum   (work_g1, mask = work_g1 /= missingvalue)
@@ -1249,28 +1224,23 @@
     ! Scatter data to individual processors.
     ! NOTE: Ghost cells are not updated unless field_loc is present.
     !-------------------------------------------------------------------
-
       if (present(restart_ext)) then
          if (restart_ext) then
             call scatter_global_ext(work, work_g1, master_task, distrb_info)
          endif
       else
          if (present(field_loc)) then
-            call scatter_global(work, work_g1, master_task, distrb_info, &
-                                field_loc, field_type)
+            ! this is where it's failing
+            call scatter_global(work, work_g1, master_task, distrb_info, field_loc, field_type)
          else
-            call scatter_global(work, work_g1, master_task, distrb_info, &
-                                field_loc_noupdate, field_type_noupdate)
+            call scatter_global(work, work_g1, master_task, distrb_info, field_loc_noupdate, field_type_noupdate)
          endif
       endif
-
       deallocate(work_g1)
 
 ! echmod:  this should not be necessary if fill/missing are only on land
       where (work > 1.0e+30_dbl_kind) work = c0
-
       if (orca_halogrid .and. .not. present(restart_ext)) deallocate(work_g2)
-
 #else
       call abort_ice(subname//' ERROR: USE_NETCDF cpp not defined', &
          file=__FILE__, line=__LINE__)

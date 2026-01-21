@@ -12,14 +12,7 @@
       module ice_step_mod
 
       use ice_kinds_mod
-      use ice_blocks, only: block, get_block
-      use ice_blocks, only: nx_block, ny_block
       use ice_constants, only: c0, c1, c1000, c4, p25
-      use ice_constants, only: field_loc_center, field_loc_NEcorner, &
-          field_loc_Nface, field_loc_Eface, &
-          field_type_scalar, field_type_vector
-      use ice_domain, only: halo_info, nblocks, blocks_ice
-      use ice_domain_size, only: max_blocks
       use ice_exit, only: abort_ice
       use ice_fileunits, only: nu_diag
       use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
@@ -45,10 +38,6 @@
       public :: step_therm1, step_therm2, step_dyn_horiz, step_dyn_ridge, &
                 step_snow, prep_radiation, step_radiation, ocean_mixed_layer, &
                 update_state, biogeochemistry, step_dyn_wave, step_prep
-
-      real (kind=dbl_kind), dimension (:,:,:), allocatable :: &
-         uvelT_icep, &      ! uvel for wind stress computation in icepack
-         vvelT_icep         ! vvel for wind stress computation in icepack
 
 !=======================================================================
 
@@ -84,13 +73,6 @@
 
       use ice_flux, only: uatm, vatm, uatmT, vatmT
       use ice_grid, only: grid_atm_dynu, grid_atm_dynv, grid_average_X2Y
-      use ice_state, only: uvel, vvel
-
-      logical (kind=log_kind) :: &
-         highfreq    ! highfreq flag
-
-      logical (kind=log_kind), save :: &
-         first_call = .true.   ! first call flag
 
       character(len=*), parameter :: subname = '(step_prep)'
 
@@ -103,26 +85,6 @@
       call grid_average_X2Y('S',uatm,grid_atm_dynu,uatmT,'T')
       call grid_average_X2Y('S',vatm,grid_atm_dynv,vatmT,'T')
 
-      !-----------------------------------------------------------------
-      ! Compute uvelT_icep, vvelT_icep
-      !-----------------------------------------------------------------
-
-      if (first_call) then
-         allocate(uvelT_icep(nx_block,ny_block,max_blocks))
-         allocate(vvelT_icep(nx_block,ny_block,max_blocks))
-         uvelT_icep = c0
-         vvelT_icep = c0
-      endif
-
-      call icepack_query_parameters(highfreq_out=highfreq)
-
-      if (highfreq) then
-         call grid_average_X2Y('A', uvel, 'U', uvelT_icep, 'T')
-         call grid_average_X2Y('A', vvel, 'U', vvelT_icep, 'T')
-      endif
-
-      first_call = .false.
-
       end subroutine step_prep
 
 !=======================================================================
@@ -133,6 +95,8 @@
 
       subroutine prep_radiation (iblk)
 
+      use ice_blocks, only: block, get_block
+      use ice_domain, only: blocks_ice
       use ice_domain_size, only: ncat, nilyr, nslyr
       use ice_flux, only: scale_factor, swvdr, swvdf, swidr, swidf, &
           alvdr_ai, alvdf_ai, alidr_ai, alidf_ai, &
@@ -224,9 +188,14 @@
           hfreebd, hdraft, hridge, distrdg, hkeel, dkeel, lfloe, dfloe, &
           fswsfcn, fswintn, Sswabsn, Iswabsn, meltsliqn, meltsliq, &
           fswthrun, fswthrun_vdr, fswthrun_vdf, fswthrun_idr, fswthrun_idf
+      use ice_blocks, only: block, get_block
+#ifdef CICE_IN_NEMO
+      use ice_blocks, only: nx_block, ny_block
+#endif
       use ice_calendar, only: yday
+      use ice_domain, only: blocks_ice
       use ice_domain_size, only: ncat, nilyr, nslyr, n_iso, n_aero
-      use ice_flux, only: frzmlt, sst, Tf, strocnxT_iavg, strocnyT_iavg, rside, fbot, Tbot, Tsnice, &
+      use ice_flux, only: frzmlt, sst, Tf, strocnxT, strocnyT, rside, fbot, Tbot, Tsnice, &
           meltsn, melttn, meltbn, congeln, snoicen, uatmT, vatmT, fside, &
           wind, rhoa, potT, Qa, zlvl, zlvs, strax, stray, flatn, fsensn, fsurfn, fcondtopn, &
           flw, fsnow, fpond, sss, mlt_onset, frz_onset, fcondbotn, fcondbot, fsloss, &
@@ -240,7 +209,7 @@
           Qa_iso, Qref_iso, fiso_evap, HDO_ocn, H2_16O_ocn, H2_18O_ocn
       use ice_grid, only: lmask_n, lmask_s, tmask
       use ice_state, only: aice, aicen, aicen_init, vicen_init, &
-          vice, vicen, vsno, vsnon, trcrn, vsnon_init
+          vice, vicen, vsno, vsnon, trcrn, uvel, vvel, vsnon_init
 #ifdef CICE_IN_NEMO
       use ice_state, only: aice_init
 #endif
@@ -274,10 +243,16 @@
          nt_isosno, nt_isoice, nt_rsnw, nt_smice, nt_smliq
 
       logical (kind=log_kind) :: &
+#ifdef UNDEPRECATE_CESMPONDS
+         tr_iage, tr_FY, tr_iso, tr_aero, tr_pond, tr_pond_cesm, &
+#else
          tr_iage, tr_FY, tr_iso, tr_aero, tr_pond, &
+#endif
          tr_pond_lvl, tr_pond_topo, calc_Tsfc, highfreq, tr_snow
 
       real (kind=dbl_kind) :: &
+         uvel_center, &     ! cell-centered velocity, x component (m/s)
+         vvel_center, &     ! cell-centered velocity, y component (m/s)
          puny               ! a very small number
 
       real (kind=dbl_kind), dimension(n_aero,2,ncat) :: &
@@ -300,7 +275,11 @@
       call icepack_query_tracer_sizes(ntrcr_out=ntrcr)
       call icepack_query_tracer_flags( &
          tr_iage_out=tr_iage, tr_FY_out=tr_FY, tr_iso_out=tr_iso, &
+#ifdef UNDEPRECATE_CESMPONDS
+         tr_aero_out=tr_aero, tr_pond_out=tr_pond, tr_pond_cesm_out=tr_pond_cesm, &
+#else
          tr_aero_out=tr_aero, tr_pond_out=tr_pond, &
+#endif
          tr_pond_lvl_out=tr_pond_lvl, tr_pond_topo_out=tr_pond_topo, &
          tr_snow_out=tr_snow)
       call icepack_query_tracer_indices( &
@@ -357,6 +336,16 @@
       do j = jlo, jhi
       do i = ilo, ihi
 
+         if (highfreq) then ! include ice velocity in calculation of wind stress
+            uvel_center = p25*(uvel(i,j  ,iblk) + uvel(i-1,j  ,iblk) & ! cell-centered velocity
+                             + uvel(i,j-1,iblk) + uvel(i-1,j-1,iblk))  ! assumes wind components
+            vvel_center = p25*(vvel(i,j  ,iblk) + vvel(i-1,j  ,iblk) & ! are also cell-centered
+                             + vvel(i,j-1,iblk) + vvel(i-1,j-1,iblk))
+         else
+            uvel_center = c0 ! not used
+            vvel_center = c0
+         endif ! highfreq
+
          if (tr_snow) then
             do n = 1, ncat
                do k = 1, nslyr
@@ -402,8 +391,8 @@
                       vicen        = vicen       (i,j,:,iblk), &
                       vsno         = vsno        (i,j,  iblk), &
                       vsnon        = vsnon       (i,j,:,iblk), &
-                      uvel         = uvelT_icep  (i,j,  iblk), &
-                      vvel         = vvelT_icep  (i,j,  iblk), &
+                      uvel         = uvel_center             , &
+                      vvel         = vvel_center             , &
                       Tsfc         = trcrn       (i,j,nt_Tsfc,:,iblk),                   &
                       zqsn         = trcrn       (i,j,nt_qsno:nt_qsno+nslyr-1,:,iblk),   &
                       zqin         = trcrn       (i,j,nt_qice:nt_qice+nilyr-1,:,iblk),   &
@@ -461,8 +450,8 @@
                       sst          = sst         (i,j,  iblk), &
                       sss          = sss         (i,j,  iblk), &
                       Tf           = Tf          (i,j,  iblk), &
-                      strocnxT    = strocnxT_iavg(i,j,  iblk), &
-                      strocnyT    = strocnyT_iavg(i,j,  iblk), &
+                      strocnxT     = strocnxT    (i,j,  iblk), &
+                      strocnyT     = strocnyT    (i,j,  iblk), &
                       fbot         = fbot        (i,j,  iblk), &
                       Tbot         = Tbot        (i,j,  iblk), &
                       Tsnice       = Tsnice      (i,j,  iblk), &
@@ -597,8 +586,7 @@
       enddo ! j
 
       call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
-         file=__FILE__, line=__LINE__)
+      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, file=__FILE__, line=__LINE__)
 
       end subroutine step_therm1
 
@@ -615,7 +603,9 @@
           wave_spectrum, wavefreq, dwavefreq, &
           first_ice, bgrid, cgrid, igrid, floe_rad_c, floe_binwidth, &
           d_afsd_latg, d_afsd_newi, d_afsd_latm, d_afsd_weld
+      use ice_blocks, only: block, get_block
       use ice_calendar, only: yday
+      use ice_domain, only: blocks_ice
       use ice_domain_size, only: ncat, nilyr, nslyr, nblyr, nfsd
       use ice_flux, only: fresh, frain, fpond, frzmlt, frazil, frz_onset, &
           update_ocn_f, fsalt, Tf, sss, salinz, fhocn, rside, fside, &
@@ -755,6 +745,8 @@
 
       subroutine update_state (dt, daidt, dvidt, dagedt, offset)
 
+      use ice_blocks, only: nx_block, ny_block
+      use ice_domain, only: nblocks
       use ice_domain_size, only: ncat
 !     use ice_grid, only: tmask
       use ice_state, only: aicen, trcrn, vicen, vsnon, &
@@ -871,6 +863,8 @@
 
       use ice_arrays_column, only: wave_spectrum, &
           d_afsd_wave, floe_rad_l, floe_rad_c, wavefreq, dwavefreq
+      use ice_blocks, only: block, get_block
+      use ice_domain, only: blocks_ice, nblocks
       use ice_domain_size, only: ncat, nfsd, nfreq
       use ice_state, only: trcrn, aicen, aice, vice
       use ice_timers, only: ice_timer_start, ice_timer_stop, timer_column, &
@@ -944,33 +938,15 @@
 
       subroutine step_dyn_horiz (dt)
 
-      use ice_boundary, only: ice_HaloUpdate
       use ice_dyn_evp, only: evp
       use ice_dyn_eap, only: eap
       use ice_dyn_vp, only: implicit_solver
       use ice_dyn_shared, only: kdyn
-      use ice_flux, only: strocnxU, strocnyU, strocnxT_iavg, strocnyT_iavg
       use ice_flux, only: init_history_dyn
-      use ice_grid, only: grid_average_X2Y
-      use ice_state, only: aiU
       use ice_transport_driver, only: advection, transport_upwind, transport_remap
 
       real (kind=dbl_kind), intent(in) :: &
          dt      ! dynamics time step
-
-      ! local variables
-
-      type (block) :: &
-         this_block      ! block information for current block
-
-      integer (kind=int_kind) :: &
-         ilo,ihi,jlo,jhi, & ! beginning and end of physical domain
-         iblk,            & ! block index
-         i, j               ! horizontal indices
-
-      real (kind=dbl_kind), dimension (nx_block,ny_block,max_blocks) :: &
-         work1, &     ! temporary
-         work2        ! temporary
 
       character(len=*), parameter :: subname = '(step_dyn_horiz)'
 
@@ -983,38 +959,6 @@
       if (kdyn == 1) call evp (dt)
       if (kdyn == 2) call eap (dt)
       if (kdyn == 3) call implicit_solver (dt)
-
-      !-----------------------------------------------------------------
-      ! Compute strocnxT_iavg, strocnyT_iavg for thermo and coupling
-      !-----------------------------------------------------------------
-
-      ! strocn computed on U, N, E as needed. Map strocn U divided by aiU to T
-      ! conservation requires aiU be divided before averaging
-      work1 = c0
-      work2 = c0
-      !$OMP PARALLEL DO PRIVATE(iblk,i,j,ilo,ihi,jlo,jhi,this_block)
-      do iblk = 1, nblocks
-         this_block = get_block(blocks_ice(iblk), iblk)
-         ilo = this_block%ilo
-         ihi = this_block%ihi
-         jlo = this_block%jlo
-         jhi = this_block%jhi
-         do j = jlo, jhi
-         do i = ilo, ihi
-            if (aiU(i,j,iblk) /= c0) then
-               work1(i,j,iblk) = strocnxU(i,j,iblk)/aiU(i,j,iblk)
-               work2(i,j,iblk) = strocnyU(i,j,iblk)/aiU(i,j,iblk)
-            endif
-        enddo
-        enddo
-      enddo
-      !$OMP END PARALLEL DO
-      call ice_HaloUpdate (work1,              halo_info, &
-                           field_loc_NEcorner, field_type_vector)
-      call ice_HaloUpdate (work2,              halo_info, &
-                           field_loc_NEcorner, field_type_vector)
-      call grid_average_X2Y('F', work1, 'U', strocnxT_iavg, 'T')    ! shift
-      call grid_average_X2Y('F', work2, 'U', strocnyT_iavg, 'T')
 
       !-----------------------------------------------------------------
       ! Horizontal ice transport
@@ -1038,6 +982,8 @@
       subroutine step_dyn_ridge (dt, ndtd, iblk)
 
       use ice_arrays_column, only: hin_max, fzsal, first_ice
+      use ice_blocks, only: block, get_block
+      use ice_domain, only: blocks_ice
       use ice_domain_size, only: ncat, nilyr, nslyr, n_aero, nblyr
       use ice_flux, only: &
           rdg_conv, rdg_shear, dardg1dt, dardg2dt, &
@@ -1160,7 +1106,9 @@
 
       subroutine step_snow (dt, iblk)
 
+      use ice_blocks, only: block, get_block
       use ice_calendar, only: nstreams
+      use ice_domain, only: blocks_ice
       use ice_domain_size, only: ncat, nslyr, nilyr
       use ice_flux, only: snwcnt, wind, fresh, fhocn, fsloss, fsnow
       use ice_state, only: trcrn, vsno, vsnon, vicen, aicen, aice
@@ -1276,7 +1224,9 @@
           alvdrn, alidrn, alvdfn, alidfn, apeffn, trcrn_sw, snowfracn, &
           kaer_tab, waer_tab, gaer_tab, kaer_bc_tab, waer_bc_tab, &
           gaer_bc_tab, bcenh, swgrid, igrid
+      use ice_blocks, only: block, get_block
       use ice_calendar, only: calendar_type, days_per_year, nextsw_cday, yday, msec
+      use ice_domain, only: blocks_ice
       use ice_domain_size, only: ncat, n_aero, nilyr, nslyr, n_zaero, n_algae, nblyr
       use ice_flux, only: swvdr, swvdf, swidr, swidf, coszen, fsnow
       use ice_grid, only: TLAT, TLON, tmask
@@ -1464,6 +1414,7 @@
       subroutine ocean_mixed_layer (dt, iblk)
 
       use ice_arrays_column, only: Cdn_atm, Cdn_atm_ratio
+      use ice_blocks, only: nx_block, ny_block
       use ice_flux, only: sst, Tf, Qa, uatmT, vatmT, wind, potT, rhoa, zlvl, &
            frzmlt, fhocn, fswthru, flw, flwout_ocn, fsens_ocn, flat_ocn, evap_ocn, &
            alvdr_ocn, alidr_ocn, alvdf_ocn, alidf_ocn, swidf, swvdf, swidr, swvdr, &
@@ -1620,6 +1571,8 @@
                            snow_bio_net, fswthrun, Rayleigh_criteria, &
                            ocean_bio_all, sice_rho, fzsal, fzsal_g, &
                            bgrid, igrid, icgrid, cgrid
+      use ice_blocks, only: block, get_block
+      use ice_domain, only: blocks_ice
       use ice_domain_size, only: nblyr, nilyr, nslyr, n_algae, n_zaero, ncat, &
                                  n_doc, n_dic,  n_don, n_fed, n_fep
       use ice_flux, only: meltbn, melttn, congeln, snoicen, &

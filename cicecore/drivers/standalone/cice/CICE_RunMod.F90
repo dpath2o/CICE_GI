@@ -12,28 +12,28 @@
 ! 2007 BPB: Modified Delta-Eddington shortwave interface
 ! 2008 ECH: moved ESMF code to its own driver
 
-      module CICE_RunMod
+module CICE_RunMod
 
-      use ice_kinds_mod
-      use ice_communicate, only: my_task, master_task
-      use ice_fileunits, only: nu_diag
-      use ice_arrays_column, only: oceanmixed_ice
-      use ice_constants, only: c0, c1
-      use ice_constants, only: field_loc_center, field_type_scalar
-      use ice_exit, only: abort_ice
-      use ice_memusage, only: ice_memusage_print
-      use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
-      use icepack_intfc, only: icepack_max_iso, icepack_max_aero
-      use icepack_intfc, only: icepack_query_parameters
-      use icepack_intfc, only: icepack_query_tracer_flags, icepack_query_tracer_sizes
+  use ice_kinds_mod
+  use ice_communicate, only: my_task, master_task
+  use ice_fileunits, only: nu_diag
+  use ice_arrays_column, only: oceanmixed_ice
+  use ice_constants, only: c0, c1
+  use ice_constants, only: field_loc_center, field_type_scalar
+  use ice_exit, only: abort_ice
+  use ice_memusage, only: ice_memusage_print
+  use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
+  use icepack_intfc, only: icepack_max_iso, icepack_max_aero
+  use icepack_intfc, only: icepack_query_parameters
+  use icepack_intfc, only: icepack_query_tracer_flags, icepack_query_tracer_sizes
 
-      implicit none
-      private
-      public :: CICE_Run, ice_step
+  implicit none
+  private
+  public :: CICE_Run, ice_step
 
-!=======================================================================
+  !=======================================================================
 
-      contains
+contains
 
 !=======================================================================
 !
@@ -43,79 +43,84 @@
 !         Philip W. Jones, LANL
 !         William H. Lipscomb, LANL
 
-      subroutine CICE_Run
+  subroutine CICE_Run
 
-      use ice_calendar, only: dt, stop_now, advance_timestep
-      use ice_forcing, only: get_forcing_atmo, get_forcing_ocn, &
-          get_wave_spec
-      use ice_forcing_bgc, only: get_forcing_bgc, get_atm_bgc, &
-          fiso_default, faero_default
-      use ice_flux, only: init_flux_atm, init_flux_ocn
-      use ice_timers, only: ice_timer_start, ice_timer_stop, &
-          timer_couple, timer_step
-      logical (kind=log_kind) :: &
-          tr_iso, tr_aero, tr_zaero, skl_bgc, z_tracers, wave_spec, tr_fsd
-      character(len=*), parameter :: subname = '(CICE_Run)'
+    use ice_calendar, only: dt, stop_now, advance_timestep
+    use ice_forcing, only: get_forcing_atmo, get_forcing_ocn, &
+         get_wave_spec
+    use ice_forcing_bgc, only: get_forcing_bgc, get_atm_bgc, &
+         fiso_default, faero_default
+    use ice_flux, only: init_flux_atm, init_flux_ocn
+    use ice_timers, only: ice_timer_start, ice_timer_stop, timer_couple, timer_step
+    logical (kind=log_kind) :: tr_iso, tr_aero, tr_zaero, skl_bgc, z_tracers, wave_spec, tr_fsd
+    character(len=*), parameter :: subname = '(CICE_Run)'
 
-   !--------------------------------------------------------------------
-   !  initialize error code and step timer
-   !--------------------------------------------------------------------
+    !--------------------------------------------------------------------
+    !  initialize error code and step timer
+    !--------------------------------------------------------------------
 
-      call ice_timer_start(timer_step)   ! start timing entire run
+    call ice_timer_start(timer_step)   ! start timing entire run
 
-      call icepack_query_parameters(skl_bgc_out=skl_bgc, &
-                                    z_tracers_out=z_tracers, &
-                                    wave_spec_out=wave_spec)
-      call icepack_query_tracer_flags(tr_iso_out=tr_iso, &
-                                      tr_aero_out=tr_aero, &
-                                      tr_zaero_out=tr_zaero, &
-                                      tr_fsd_out=tr_fsd)
-      call icepack_warnings_flush(nu_diag)
-      if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
+    call icepack_query_parameters(skl_bgc_out=skl_bgc, &
+         z_tracers_out=z_tracers, &
+         wave_spec_out=wave_spec)
+    call icepack_query_tracer_flags(tr_iso_out=tr_iso, &
+         tr_aero_out=tr_aero, &
+         tr_zaero_out=tr_zaero, &
+         tr_fsd_out=tr_fsd)
+    call icepack_warnings_flush(nu_diag)
+    if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
          file=__FILE__, line=__LINE__)
 
 #ifndef CICE_IN_NEMO
    !--------------------------------------------------------------------
    ! timestep loop
    !--------------------------------------------------------------------
-
-      timeLoop: do
+    timeLoop: do
 #endif
 
-         call ice_step
+       call ice_step
 
 ! tcraig, use advance_timestep now
 !         istep  = istep  + 1    ! update time step counters
 !         istep1 = istep1 + 1
 !         time = time + dt       ! determine the time and date
 !         call calendar(time)    ! at the end of the timestep
-         call advance_timestep()     ! advance time
+       call advance_timestep()     ! advance time
 
 #ifndef CICE_IN_NEMO
-         if (stop_now >= 1) exit timeLoop
+       if (stop_now >= 1) exit timeLoop
 #endif
 
-         call ice_timer_start(timer_couple)  ! atm/ocn coupling
+       call ice_timer_start(timer_couple)  ! atm/ocn coupling
 
-! for now, wave_spectrum is constant in time
-!         if (tr_fsd .and. wave_spec) call get_wave_spec ! wave spectrum in ice
-         call get_forcing_atmo     ! atmospheric forcing from data
-         call get_forcing_ocn(dt)  ! ocean forcing from data
+       ! for now, wave_spectrum is constant in time
+       ! if (tr_fsd .and. wave_spec) call get_wave_spec ! wave spectrum in ice
+       ! write(nu_diag,*) ' '
+       ! write(nu_diag,*) '(CICE_RunMod.F90)  STARTING GET FORCINGS'
+       ! write(nu_diag,*) '(CICE_RunMod.F90)  CALLING get_forcing_atm '
+       call get_forcing_atmo     ! atmospheric forcing from data
+       ! write(nu_diag,*) '(CICE_RunMod.F90)  CALLING get_forcing_ocn '
+       ! write(nu_diag,*) '(CICE_RunMod.F90), passing dt to get_forcing_ocn: ',dt
+       ! write(nu_diag,*) '(CICE_RunMod.F90), timers (couple, step): ',timer_couple,timer_step
+       call get_forcing_ocn(dt)  ! ocean forcing from data
+       ! write(nu_diag,*) '(CICE_RunMod.F90)  FINISHED GET FORCINGS'
+       ! write(nu_diag,*) ' '
 
-         ! isotopes
-         if (tr_iso)     call fiso_default                 ! default values
-         ! aerosols
-         ! if (tr_aero)  call faero_data                   ! data file
-         ! if (tr_zaero) call fzaero_data                  ! data file (gx1)
-         if (tr_aero .or. tr_zaero)  call faero_default    ! default values
+       ! isotopes
+       if (tr_iso)     call fiso_default                 ! default values
+       ! aerosols
+       ! if (tr_aero)  call faero_data                   ! data file
+       ! if (tr_zaero) call fzaero_data                  ! data file (gx1)
+       if (tr_aero .or. tr_zaero)  call faero_default    ! default values
 
-         if (skl_bgc .or. z_tracers) call get_forcing_bgc  ! biogeochemistry
-         if (z_tracers) call get_atm_bgc                   ! biogeochemistry
+       if (skl_bgc .or. z_tracers) call get_forcing_bgc  ! biogeochemistry
+       if (z_tracers) call get_atm_bgc                   ! biogeochemistry
 
-         call init_flux_atm  ! Initialize atmosphere fluxes sent to coupler
-         call init_flux_ocn  ! initialize ocean fluxes sent to coupler
+       call init_flux_atm  ! Initialize atmosphere fluxes sent to coupler
+       call init_flux_ocn  ! initialize ocean fluxes sent to coupler
 
-         call ice_timer_stop(timer_couple)    ! atm/ocn coupling
+       call ice_timer_stop(timer_couple)    ! atm/ocn coupling
 
 #ifndef CICE_IN_NEMO
       enddo timeLoop
@@ -127,7 +132,7 @@
 
       call ice_timer_stop(timer_step)   ! end timestepping loop timer
 
-      end subroutine CICE_Run
+    end subroutine CICE_Run
 
 !=======================================================================
 !
@@ -151,7 +156,11 @@
       use ice_history_bgc, only: init_history_bgc
       use ice_restart, only: final_restart
       use ice_restart_column, only: write_restart_age, write_restart_FY, &
+#ifdef UNDEPRECATE_CESMPONDS
+          write_restart_lvl, write_restart_pond_cesm, write_restart_pond_lvl, &
+#else
           write_restart_lvl, write_restart_pond_lvl, &
+#endif
           write_restart_pond_topo, write_restart_aero, write_restart_fsd, &
           write_restart_iso, write_restart_bgc, write_restart_hbrine, &
           write_restart_snow
@@ -174,7 +183,11 @@
 
       logical (kind=log_kind) :: &
           tr_iage, tr_FY, tr_lvl, tr_fsd, tr_snow, &
+#ifdef UNDEPRECATE_CESMPONDS
+          tr_pond_cesm, tr_pond_lvl, tr_pond_topo, tr_brine, tr_iso, tr_aero, &
+#else
           tr_pond_lvl, tr_pond_topo, tr_brine, tr_iso, tr_aero, &
+#endif
           calc_Tsfc, skl_bgc, solve_zsal, z_tracers, wave_spec
 
       character(len=*), parameter :: subname = '(ice_step)'
@@ -192,7 +205,11 @@
            solve_zsal_out=solve_zsal, z_tracers_out=z_tracers, ktherm_out=ktherm, &
            wave_spec_out=wave_spec)
       call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
+#ifdef UNDEPRECATE_CESMPONDS
+           tr_lvl_out=tr_lvl, tr_pond_cesm_out=tr_pond_cesm, tr_pond_lvl_out=tr_pond_lvl, &
+#else
            tr_lvl_out=tr_lvl, tr_pond_lvl_out=tr_pond_lvl, &
+#endif
            tr_pond_topo_out=tr_pond_topo, tr_brine_out=tr_brine, tr_aero_out=tr_aero, &
            tr_iso_out=tr_iso, tr_fsd_out=tr_fsd, tr_snow_out=tr_snow)
       call icepack_warnings_flush(nu_diag)
@@ -396,6 +413,9 @@
             if (tr_iage)      call write_restart_age
             if (tr_FY)        call write_restart_FY
             if (tr_lvl)       call write_restart_lvl
+#ifdef UNDEPRECATE_CESMPONDS
+            if (tr_pond_cesm) call write_restart_pond_cesm
+#endif
             if (tr_pond_lvl)  call write_restart_pond_lvl
             if (tr_pond_topo) call write_restart_pond_topo
             if (tr_snow)      call write_restart_snow

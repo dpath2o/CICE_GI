@@ -9,45 +9,38 @@
 ! 2006 ECH: Added namelist variables, warnings.
 !           Replaced old default initial ice conditions with 3.14 version.
 !           Converted to free source form (F90).
-
-      module ice_init
-
-      use ice_kinds_mod
-      use ice_communicate, only: my_task, master_task, ice_barrier
-      use ice_constants, only: c0, c1, c2, c3, c5, c12, p2, p3, p5, p75, p166, &
-          cm_to_m
-      use ice_exit, only: abort_ice
-      use ice_fileunits, only: nu_nml, nu_diag, nml_filename, diag_type, &
-          ice_stdout, get_fileunit, release_fileunit, bfbflag, flush_fileunit, &
-          ice_IOUnitsMinUnit, ice_IOUnitsMaxUnit
+module ice_init
+  use ice_kinds_mod
+  use ice_communicate, only: my_task, master_task, ice_barrier
+  use ice_constants  , only: c0, c1, c2, c3, c5, c12, p2, p3, p5, p75, p166, cm_to_m
+  use ice_exit       , only: abort_ice
+  use ice_fileunits  , only: nu_nml, nu_diag, nu_diag_set, nml_filename, diag_type, &
+       ice_stdout, get_fileunit, release_fileunit, bfbflag, flush_fileunit, &
+       ice_IOUnitsMinUnit, ice_IOUnitsMaxUnit
 #ifdef CESMCOUPLED
-      use ice_fileunits, only: inst_suffix, nu_diag_set
+  use ice_fileunits  , only: inst_suffix
 #endif
-      use icepack_intfc, only: icepack_warnings_flush, icepack_warnings_aborted
-      use icepack_intfc, only: icepack_aggregate
-      use icepack_intfc, only: icepack_init_trcr
-      use icepack_intfc, only: icepack_init_parameters
-      use icepack_intfc, only: icepack_init_tracer_flags
-      use icepack_intfc, only: icepack_init_tracer_sizes
-      use icepack_intfc, only: icepack_query_tracer_flags
-      use icepack_intfc, only: icepack_query_tracer_sizes
-      use icepack_intfc, only: icepack_query_tracer_indices
-      use icepack_intfc, only: icepack_query_parameters
-
-      implicit none
-      private
-
-      character(len=char_len_long), public :: &
-         ice_ic      ! method of ice cover initialization
-                     ! 'internal' => set from ice_data_ namelist
-                     ! 'none'     => no ice
-                     ! filename   => read file
-
-      public :: input_data, init_state, set_state_var
+  use icepack_intfc  , only: icepack_warnings_flush, icepack_warnings_aborted
+  use icepack_intfc  , only: icepack_aggregate
+  use icepack_intfc  , only: icepack_init_trcr
+  use icepack_intfc  , only: icepack_init_parameters
+  use icepack_intfc  , only: icepack_init_tracer_flags
+  use icepack_intfc  , only: icepack_init_tracer_sizes
+  use icepack_intfc  , only: icepack_query_tracer_flags
+  use icepack_intfc  , only: icepack_query_tracer_sizes
+  use icepack_intfc  , only: icepack_query_tracer_indices
+  use icepack_intfc  , only: icepack_query_parameters
+  implicit none
+  private
+  character(len=char_len_long), public :: ice_ic ! method of ice cover initialization
+                                                 ! 'internal' => set from ice_data_ namelist
+                                                 ! 'none'     => no ice
+                                                 ! filename   => read file
+  public :: input_data, init_state, set_state_var
 
 !=======================================================================
 
-      contains
+contains
 
 !=======================================================================
 
@@ -56,41 +49,47 @@
 !
 ! author Elizabeth C. Hunke, LANL
 
-      subroutine input_data
+  subroutine input_data
 
-      use ice_broadcast, only: broadcast_scalar, broadcast_array
-      use ice_diagnostics, only: diag_file, print_global, print_points, latpnt, lonpnt, &
-                                 debug_model, debug_model_step, debug_model_task, &
-                                 debug_model_i, debug_model_j, debug_model_iblk
-      use ice_domain, only: close_boundaries, orca_halogrid
-      use ice_domain_size, only: ncat, nilyr, nslyr, nblyr, nfsd, nfreq, &
-                                 n_iso, n_aero, n_zaero, n_algae, &
-                                 n_doc, n_dic, n_don, n_fed, n_fep, &
-                                 max_nstrm
-      use ice_calendar, only: year_init, month_init, day_init, sec_init, &
-                              istep0, histfreq, histfreq_n, histfreq_base, &
-                              dumpfreq, dumpfreq_n, diagfreq, dumpfreq_base, &
-                              npt, dt, ndtd, days_per_year, use_leap_years, &
-                              write_ic, dump_last, npt_unit
-      use ice_arrays_column, only: oceanmixed_ice
-      use ice_restart_column, only: restart_age, restart_FY, restart_lvl, &
-          restart_pond_lvl, restart_pond_topo, restart_aero, &
-          restart_fsd, restart_iso, restart_snow
-      use ice_restart_shared, only: &
-          restart, restart_ext, restart_coszen, restart_dir, restart_file, pointer_file, &
-          runid, runtype, use_restart_time, restart_format, lcdf64
-      use ice_history_shared, only: hist_avg, history_dir, history_file, &
-                             incond_dir, incond_file, version_name, &
-                             history_precision, history_format
-      use ice_flux, only: update_ocn_f, l_mpond_fresh
-      use ice_flux, only: default_season
-      use ice_flux_bgc, only: cpl_bgc
-      use ice_forcing, only: &
-          ycycle,          fyear_init,    debug_forcing, &
-          atm_data_type,   atm_data_dir,  precip_units, rotate_wind, &
-          atm_data_format, ocn_data_format, &
+    use ice_broadcast, only: broadcast_scalar, broadcast_array
+    use ice_diagnostics, only: diag_file, print_global, print_points, latpnt, lonpnt, &
+         debug_model, debug_model_step, debug_model_task, &
+         debug_model_i, debug_model_j, debug_model_iblk
+    use ice_domain, only: close_boundaries, orca_halogrid
+    use ice_domain_size, only: ncat, nilyr, nslyr, nblyr, nfsd, nfreq, &
+         n_iso, n_aero, n_zaero, n_algae, &
+         n_doc, n_dic, n_don, n_fed, n_fep, &
+         max_nstrm
+    use ice_calendar, only: year_init, month_init, day_init, sec_init, &
+         istep0, histfreq, histfreq_n, histfreq_base, &
+         dumpfreq, dumpfreq_n, diagfreq, dumpfreq_base, &
+         npt, dt, ndtd, days_per_year, use_leap_years, &
+         write_ic, dump_last, npt_unit
+    use ice_arrays_column, only: oceanmixed_ice
+#ifdef UNDEPRECATE_CESMPONDS
+    use ice_restart_column, only: restart_age, restart_FY, restart_lvl, &
+         restart_pond_cesm, restart_pond_lvl, restart_pond_topo, restart_aero, &
+         restart_fsd, restart_iso, restart_snow
+#else
+    use ice_restart_column, only: restart_age, restart_FY, restart_lvl, &
+         restart_pond_lvl, restart_pond_topo, restart_aero, &
+         restart_fsd, restart_iso, restart_snow
+#endif
+    use ice_restart_shared, only: &
+         restart, restart_ext, restart_coszen, restart_dir, restart_file, pointer_file, &
+         runid, runtype, use_restart_time, restart_format, lcdf64
+    use ice_history_shared, only: hist_avg, history_dir, history_file, &
+         incond_dir, incond_file, version_name, &
+         history_precision, history_format
+    use ice_flux, only: update_ocn_f, l_mpond_fresh
+    use ice_flux, only: default_season
+    use ice_flux_bgc, only: cpl_bgc
+    use ice_forcing, only: &
+         ycycle,          fyear_init,    debug_forcing, &
+         atm_data_type,   atm_data_dir,  precip_units, rotate_wind, &
+          atm_data_format, era5_mod_var, era5_mod_fac, ocn_data_format, &
           bgc_data_type, &
-          ocn_data_type, ocn_data_dir, wave_spec_file,  &
+          ocn_data_type, ocn_data_freq, ocn_data_dir, wave_spec_file,  &
           oceanmixed_file, restore_ocn, trestore, &
           ice_data_type, ice_data_conc, ice_data_dist, &
           snw_filename, &
@@ -127,17 +126,12 @@
 #ifdef CESMCOUPLED
       use shr_file_mod, only: shr_file_setIO
 #endif
-
       ! local variables
-
-      integer (kind=int_kind) :: &
-         nml_error, & ! namelist i/o error flag
-         n            ! loop index
-
+      integer (kind=int_kind) :: nml_error, & ! namelist i/o error flag
+                                 n            ! loop index
 #ifdef CESMCOUPLED
       logical :: exists
 #endif
-
       real (kind=dbl_kind) :: ustar_min, albicev, albicei, albsnowv, albsnowi, &
         ahmax, R_ice, R_pnd, R_snw, dT_mlt, rsnw_mlt, emissivity, &
         mu_rdg, hs0, dpscale, rfracmin, rfracmax, pndaspect, hs1, hp1, &
@@ -146,33 +140,37 @@
         sw_frac, sw_dtemp, floediam, hfrazilmin, iceruf, iceruf_ocn, &
         rsnw_fall, rsnw_tmax, rhosnew, rhosmin, rhosmax, &
         windmin, drhosdwind, snwlvlfac
-
       integer (kind=int_kind) :: ktherm, kstrength, krdg_partic, krdg_redist, natmiter, &
         kitd, kcatbound, ktransport
-
       character (len=char_len) :: shortwave, albedo_type, conduct, fbot_xfer_type, &
-        tfrz_option, saltflux_option, frzpnd, atmbndy, wave_spec_type, snwredist, snw_aging_table, &
+        tfrz_option, frzpnd, atmbndy, wave_spec_type, snwredist, snw_aging_table, &
         capping_method
-
       logical (kind=log_kind) :: calc_Tsfc, formdrag, highfreq, calc_strair, wave_spec, &
         sw_redist, calc_dragio, use_smliq_pnd, snwgrain
-
       logical (kind=log_kind) :: tr_iage, tr_FY, tr_lvl, tr_pond
       logical (kind=log_kind) :: tr_iso, tr_aero, tr_fsd, tr_snow
+#ifdef UNDEPRECATE_CESMPONDS
+      logical (kind=log_kind) :: tr_pond_cesm, tr_pond_lvl, tr_pond_topo
+#else
       logical (kind=log_kind) :: tr_pond_lvl, tr_pond_topo
+#endif
       integer (kind=int_kind) :: numin, numax  ! unit number limits
 
+#ifdef UNDEPRECATE_CESMPONDS
+      integer (kind=int_kind) :: rpcesm, rplvl, rptopo
+#else
       integer (kind=int_kind) :: rplvl, rptopo
-      real (kind=dbl_kind) :: Cf, ksno, puny, ice_ref_salinity
+#endif
+      real (kind=dbl_kind) :: Cf, ksno, puny
       character (len=char_len) :: abort_list
+#ifdef CESMCOUPLED
+      character (len=64) :: tmpstr
+#endif
       character (len=128) :: tmpstr2
-
       character(len=*), parameter :: subname='(input_data)'
-
       !-----------------------------------------------------------------
       ! Namelist variables
       !-----------------------------------------------------------------
-
       namelist /setup_nml/ &
         days_per_year,  use_leap_years, istep0,          npt_unit,      &
         dt,             npt,            ndtd,            numin,         &
@@ -189,7 +187,6 @@
         debug_model_i,  debug_model_j,  debug_model_iblk, debug_model_task, &
         year_init,      month_init,     day_init,        sec_init,      &
         write_ic,       incond_dir,     incond_file,     version_name
-
       namelist /grid_nml/ &
         grid_format,    grid_type,       grid_file,     kmt_file,       &
         bathymetry_file, use_bathymetry, nfsd,          bathymetry_format, &
@@ -199,11 +196,13 @@
         scale_dxdy,                                                     &
         close_boundaries, orca_halogrid, grid_ice,      kmt_type,       &
         grid_atm,       grid_ocn
-
       namelist /tracer_nml/                                             &
         tr_iage, restart_age,                                           &
         tr_FY, restart_FY,                                              &
         tr_lvl, restart_lvl,                                            &
+#ifdef UNDEPRECATE_CESMPONDS
+        tr_pond_cesm, restart_pond_cesm,                                &
+#endif
         tr_pond_lvl, restart_pond_lvl,                                  &
         tr_pond_topo, restart_pond_topo,                                &
         tr_snow, restart_snow,                                          &
@@ -212,13 +211,11 @@
         tr_fsd, restart_fsd,                                            &
         n_iso, n_aero, n_zaero, n_algae,                                &
         n_doc, n_dic, n_don, n_fed, n_fep
-
       namelist /thermo_nml/ &
         kitd,           ktherm,          conduct,     ksno,             &
         a_rapid_mode,   Rac_rapid_mode,  aspect_rapid_mode,             &
         dSdt_slow_mode, phi_c_slow_mode, phi_i_mushy,                   &
         floediam,       hfrazilmin
-
       namelist /dynamics_nml/ &
         kdyn,           ndte,           revised_evp,    yield_curve,    &
         evp_algorithm,  elasticDamp,                                    &
@@ -235,53 +232,44 @@
         k1, k2,         alphab,         threshold_hw,                   &
         deltaminEVP,    deltaminVP,     capping_method,                 &
         Cf,             Pstar,          Cstar,          Ktens
-
       namelist /shortwave_nml/ &
         shortwave,      albedo_type,                                    &
         albicev,        albicei,         albsnowv,      albsnowi,       &
         ahmax,          R_ice,           R_pnd,         R_snw,          &
         sw_redist,      sw_frac,         sw_dtemp,                      &
         dT_mlt,         rsnw_mlt,        kalg
-
       namelist /ponds_nml/ &
         hs0,            dpscale,         frzpnd,                        &
         rfracmin,       rfracmax,        pndaspect,     hs1,            &
         hp1
-
       namelist /snow_nml/ &
         snwredist,      snwgrain,        rsnw_fall,     rsnw_tmax,      &
         rhosnew,        rhosmin,         rhosmax,       snwlvlfac,      &
         windmin,        drhosdwind,      use_smliq_pnd, snw_aging_table,&
         snw_filename,   snw_rhos_fname,  snw_Tgrd_fname,snw_T_fname,    &
         snw_tau_fname,  snw_kappa_fname, snw_drdt0_fname
-
       namelist /forcing_nml/ &
         formdrag,       atmbndy,         calc_strair,   calc_Tsfc,      &
         highfreq,       natmiter,        atmiter_conv,  calc_dragio,    &
         ustar_min,      emissivity,      iceruf,        iceruf_ocn,     &
         fbot_xfer_type, update_ocn_f,    l_mpond_fresh, tfrz_option,    &
-        saltflux_option,ice_ref_salinity,                               &
         oceanmixed_ice, restore_ice,     restore_ocn,   trestore,       &
         precip_units,   default_season,  wave_spec_type,nfreq,          &
-        atm_data_type,  ocn_data_type,   bgc_data_type, fe_data_type,   &
+        atm_data_type,  ocn_data_type,   ocn_data_freq, bgc_data_type, fe_data_type,   &
         ice_data_type,  ice_data_conc,   ice_data_dist,                 &
         fyear_init,     ycycle,          wave_spec_file,restart_coszen, &
         atm_data_dir,   ocn_data_dir,    bgc_data_dir,                  &
         atm_data_format, ocn_data_format, rotate_wind,                  &
-        oceanmixed_file
-
+        oceanmixed_file, era5_mod_var, era5_mod_fac
       !-----------------------------------------------------------------
       ! default values
       !-----------------------------------------------------------------
-
       abort_list = ""
-
       call icepack_query_parameters(puny_out=puny)
 ! nu_diag not yet defined
 !      call icepack_warnings_flush(nu_diag)
 !      if (icepack_warnings_aborted()) call abort_ice(error_message=subname//'Icepack Abort0', &
 !         file=__FILE__, line=__LINE__)
-
       days_per_year = 365    ! number of days in a year
       use_leap_years= .false.! if true, use leap years (Feb 29)
       year_init = 0          ! initial year
@@ -400,7 +388,7 @@
       deltaminEVP = 1e-11_dbl_kind ! minimum delta for viscosities (EVP, Hunke 2001)
       deltaminVP  = 2e-9_dbl_kind  ! minimum delta for viscosities (VP, Hibler 1979)
       capping_method  = 'max'  ! method for capping of viscosities (max=Hibler 1979,sum=Kreyscher2000)
-      maxits_nonlin = 10       ! max nb of iteration for nonlinear solver
+      maxits_nonlin = 4        ! max nb of iteration for nonlinear solver
       precond = 'pgmres'       ! preconditioner for fgmres: 'ident' (identity), 'diag' (diagonal),
                                ! 'pgmres' (Jacobi-preconditioned GMRES)
       dim_fgmres = 50          ! size of fgmres Krylov subspace
@@ -412,7 +400,7 @@
       monitor_pgmres = .false. ! print pgmres residual norm
       ortho_type = 'mgs'       ! orthogonalization procedure 'cgs' or 'mgs'
       reltol_nonlin = 1e-8_dbl_kind ! nonlinear stopping criterion: reltol_nonlin*res(k=0)
-      reltol_fgmres = 1e-1_dbl_kind ! fgmres stopping criterion: reltol_fgmres*res(k)
+      reltol_fgmres = 1e-2_dbl_kind ! fgmres stopping criterion: reltol_fgmres*res(k)
       reltol_pgmres = 1e-6_dbl_kind ! pgmres stopping criterion: reltol_pgmres*res(k)
       algo_nonlin = 'picard'        ! nonlinear algorithm: 'picard' (Picard iteration), 'anderson' (Anderson acceleration)
       fpfunc_andacc = 1        ! fixed point function for Anderson acceleration:
@@ -426,7 +414,11 @@
       conserv_check = .false.  ! tracer conservation check
       shortwave = 'ccsm3'      ! 'ccsm3' or 'dEdd' (delta-Eddington)
       albedo_type = 'ccsm3'    ! 'ccsm3' or 'constant'
+#ifdef UNDEPRECATE_0LAYER
+      ktherm = 1               ! -1 = OFF, 0 = 0-layer, 1 = BL99, 2 = mushy thermo
+#else
       ktherm = 1               ! -1 = OFF, 1 = BL99, 2 = mushy thermo
+#endif
       conduct = 'bubbly'       ! 'MU71' or 'bubbly' (Pringle et al 2007)
       coriolis = 'latitude'    ! latitude dependent, or 'constant'
       ssh_stress = 'geostrophic'  ! 'geostrophic' or 'coupled'
@@ -489,6 +481,8 @@
       atm_data_format = 'bin'     ! file format ('bin'=binary or 'nc'=netcdf)
       atm_data_type   = 'default'
       atm_data_dir    = ' '
+      era5_mod_var    = ''
+      era5_mod_fac    = 1
       rotate_wind     = .true.    ! rotate wind/stress composants to computational grid orientation
       calc_strair     = .true.    ! calculate wind stress
       formdrag        = .false.   ! calculate form drag
@@ -498,8 +492,6 @@
       precip_units    = 'mks'     ! 'mm_per_month' or
                                   ! 'mm_per_sec' = 'mks' = kg/m^2 s
       tfrz_option     = 'mushy'   ! freezing temp formulation
-      saltflux_option = 'constant'    ! saltflux calculation
-      ice_ref_salinity = 4.0_dbl_kind ! Ice reference salinity for coupling
       oceanmixed_ice  = .false.   ! if true, use internal ocean mixed layer
       wave_spec_type  = 'none'    ! type of wave spectrum forcing
       nfreq           = 25        ! number of wave frequencies
@@ -512,6 +504,7 @@
       ice_data_dist   = 'default' ! used by some tests to initialize ice state (distribution)
       bgc_data_dir    = 'unknown_bgc_data_dir'
       ocn_data_type   = 'default'
+      ocn_data_freq   = 'monthly'
       ocn_data_dir    = 'unknown_ocn_data_dir'
       oceanmixed_file = 'unknown_oceanmixed_file' ! ocean forcing data
       restore_ocn     = .false.   ! restore sst if true
@@ -538,6 +531,10 @@
       restart_FY   = .false. ! ice age restart
       tr_lvl       = .false. ! level ice
       restart_lvl  = .false. ! level ice restart
+#ifdef UNDEPRECATE_CESMPONDS
+      tr_pond_cesm = .false. ! CESM melt ponds
+      restart_pond_cesm = .false. ! melt ponds restart
+#endif
       tr_pond_lvl  = .false. ! level-ice melt ponds
       restart_pond_lvl  = .false. ! melt ponds restart
       tr_pond_topo = .false. ! explicit melt ponds (topographic)
@@ -761,8 +758,8 @@
          ! each task gets unique ice log filename when if test is true, for debugging
          if (1 == 0) then
             call get_fileUnit(nu_diag)
-            write(tmpstr2,'(a,i4.4)') "ice.log.task_",my_task
-            open(nu_diag,file=tmpstr2)
+            write(tmpstr,'(a,i4.4)') "ice.log.task_",my_task
+            open(nu_diag,file=tmpstr)
          endif
       end if
       if (trim(ice_ic) /= 'default' .and. &
@@ -955,7 +952,6 @@
       call broadcast_scalar(albsnowi,             master_task)
       call broadcast_scalar(ahmax,                master_task)
       call broadcast_scalar(atmbndy,              master_task)
-      call broadcast_scalar(default_season,       master_task)
       call broadcast_scalar(fyear_init,           master_task)
       call broadcast_scalar(ycycle,               master_task)
       call broadcast_scalar(atm_data_format,      master_task)
@@ -982,8 +978,6 @@
       call broadcast_scalar(wave_spec_file,       master_task)
       call broadcast_scalar(nfreq,                master_task)
       call broadcast_scalar(tfrz_option,          master_task)
-      call broadcast_scalar(saltflux_option,      master_task)
-      call broadcast_scalar(ice_ref_salinity,     master_task)
       call broadcast_scalar(ocn_data_format,      master_task)
       call broadcast_scalar(bgc_data_type,        master_task)
       call broadcast_scalar(fe_data_type,         master_task)
@@ -992,6 +986,11 @@
       call broadcast_scalar(ice_data_dist,        master_task)
       call broadcast_scalar(bgc_data_dir,         master_task)
       call broadcast_scalar(ocn_data_type,        master_task)
+      !DP@H2O
+      call broadcast_scalar(ocn_data_freq,        master_task)
+      call broadcast_scalar(era5_mod_var,         master_task)
+      call broadcast_scalar(era5_mod_fac,         master_task)
+      !
       call broadcast_scalar(ocn_data_dir,         master_task)
       call broadcast_scalar(oceanmixed_file,      master_task)
       call broadcast_scalar(restore_ocn,          master_task)
@@ -1011,6 +1010,10 @@
       call broadcast_scalar(restart_FY,           master_task)
       call broadcast_scalar(tr_lvl,               master_task)
       call broadcast_scalar(restart_lvl,          master_task)
+#ifdef UNDEPRECATE_CESMPONDS
+      call broadcast_scalar(tr_pond_cesm,         master_task)
+      call broadcast_scalar(restart_pond_cesm,    master_task)
+#endif
       call broadcast_scalar(tr_pond_lvl,          master_task)
       call broadcast_scalar(restart_pond_lvl,     master_task)
       call broadcast_scalar(tr_pond_topo,         master_task)
@@ -1103,6 +1106,9 @@
             restart_age =  .false.
             restart_fy =  .false.
             restart_lvl =  .false.
+#ifdef UNDEPRECATE_CESMPONDS
+            restart_pond_cesm =  .false.
+#endif
             restart_pond_lvl =  .false.
             restart_pond_topo =  .false.
             restart_snow = .false.
@@ -1219,15 +1225,29 @@
          endif
       endif
 
+#ifdef UNDEPRECATE_CESMPONDS
+      rpcesm = 0
+#endif
       rplvl  = 0
       rptopo = 0
+#ifdef UNDEPRECATE_CESMPONDS
+      if (tr_pond_cesm) rpcesm = 1
+#endif
       if (tr_pond_lvl ) rplvl  = 1
       if (tr_pond_topo) rptopo = 1
 
       tr_pond = .false. ! explicit melt ponds
+#ifdef UNDEPRECATE_CESMPONDS
+      if (rpcesm + rplvl + rptopo > 0) tr_pond = .true.
+#else
       if (rplvl + rptopo > 0) tr_pond = .true.
+#endif
 
+#ifdef UNDEPRECATE_CESMPONDS
+      if (rpcesm + rplvl + rptopo > 1) then
+#else
       if (rplvl + rptopo > 1) then
+#endif
          if (my_task == master_task) then
             write(nu_diag,*) subname//' ERROR: Must use only one melt pond scheme'
          endif
@@ -1419,12 +1439,6 @@
             write(nu_diag,*) subname//' WARNING:   For consistency, set tfrz_option = mushy'
          endif
       endif
-      if (ktherm == 1 .and. trim(saltflux_option) /= 'constant') then
-         if (my_task == master_task) then
-            write(nu_diag,*) subname//' WARNING: ktherm = 1 and saltflux_option = ',trim(saltflux_option)
-            write(nu_diag,*) subname//' WARNING:   For consistency, set saltflux_option = constant'
-         endif
-      endif
 !tcraig
       if (ktherm == 1 .and. .not.sw_redist) then
          if (my_task == master_task) then
@@ -1456,6 +1470,13 @@
             if (my_task == master_task) write(nu_diag,*) subname//' ERROR: formdrag=T and tr_pond=F'
             abort_list = trim(abort_list)//":16"
          endif
+
+#ifdef UNDEPRECATE_CESMPONDS
+         if (tr_pond_cesm) then
+            if (my_task == master_task) write(nu_diag,*) subname//' ERROR: formdrag=T and frzpnd=cesm'
+            abort_list = trim(abort_list)//":17"
+         endif
+#endif
 
          if (.not. tr_lvl) then
             if (my_task == master_task) write(nu_diag,*) subname//' ERROR: formdrag=T and tr_lvl=F'
@@ -1538,11 +1559,6 @@
 
       wave_spec = .false.
       if (tr_fsd .and. (trim(wave_spec_type) /= 'none')) wave_spec = .true.
-      if (tr_fsd .and. (trim(wave_spec_type) == 'none')) then
-            if (my_task == master_task) then
-               write(nu_diag,*) subname//' WARNING: tr_fsd=T but wave_spec=F - not recommended'
-            endif
-      end if
 
       ! compute grid locations for thermo, u and v fields
 
@@ -1880,6 +1896,10 @@
             tmpstr2 = ' : Bitz and Lipscomb 1999 thermo'
          elseif (ktherm == 2) then
             tmpstr2 = ' : mushy-layer thermo'
+#ifdef UNDEPRECATE_0LAYER
+         elseif (ktherm == 0) then
+            tmpstr2 = ' : zero-layer thermo'
+#endif
          elseif (ktherm < 0) then
             tmpstr2 = ' : Thermodynamics disabled'
          else
@@ -1985,10 +2005,6 @@
             write(nu_diag,*) '     WARNING: will impact ocean forcing interaction'
             write(nu_diag,*) '     WARNING: coupled forcing will be modified by mixed layer routine'
          endif
-         write(nu_diag,1030) ' saltflux_option  = ', trim(saltflux_option)
-         if (trim(saltflux_option) == 'constant') then
-            write(nu_diag,1002) ' ice_ref_salinity = ',ice_ref_salinity
-         endif
          if (trim(tfrz_option) == 'minus1p8') then
             tmpstr2 = ' : constant ocean freezing temperature (-1.8C)'
          elseif (trim(tfrz_option) == 'linear_salt') then
@@ -2035,21 +2051,18 @@
             if (wave_spec) then
                tmpstr2 = ' : use wave spectrum for floe size distribution'
             else
-               tmpstr2 = 'WARNING : floe size distribution does not use wave spectrum'
+               tmpstr2 = ' : floe size distribution does not use wave spectrum'
             endif
             write(nu_diag,1010) ' wave_spec          = ', wave_spec,trim(tmpstr2)
             if (wave_spec) then
                if (trim(wave_spec_type) == 'none') then
                   tmpstr2 = ' : no wave data provided, no wave-ice interactions'
                elseif (trim(wave_spec_type) == 'profile') then
-                  tmpstr2 = ' : use fixed dummy wave spectrum for testing, sea surface height generated '// &
-                            'using constant phase (1 iteration of wave fracture)'
+                  tmpstr2 = ' : use fixed dummy wave spectrum for testing'
                elseif (trim(wave_spec_type) == 'constant') then
-                  tmpstr2 = ' : wave spectrum data file provided, sea surface height generated '// &
-                            'using constant phase (1 iteration of wave fracture)'
+                  tmpstr2 = ' : constant wave spectrum data file provided for testing'
                elseif (trim(wave_spec_type) == 'random') then
-                  tmpstr2 = ' : wave spectrum data file provided, sea surface height generated using '// &
-                            'random number (multiple iterations of wave fracture to convergence)'
+                  tmpstr2 = ' : wave data file provided, spectrum generated using random number'
                else
                   tmpstr2 = ' : unknown value'
                endif
@@ -2067,7 +2080,14 @@
          write(nu_diag,*) ' '
          write(nu_diag,*) ' Melt ponds'
          write(nu_diag,*) '--------------------------------'
+#ifdef UNDEPRECATE_CESMPONDS
+         if (tr_pond_cesm) then
+            write(nu_diag,1010) ' tr_pond_cesm     = ', tr_pond_cesm,' : CESM pond formulation'
+            write(nu_diag,1002) ' pndaspect        = ', pndaspect,' : ratio of pond depth to area fraction'
+         elseif (tr_pond_lvl) then
+#else
          if (tr_pond_lvl) then
+#endif
             write(nu_diag,1010) ' tr_pond_lvl      = ', tr_pond_lvl,' : level-ice pond formulation'
             write(nu_diag,1002) ' pndaspect        = ', pndaspect,' : ratio of pond depth to area fraction'
             write(nu_diag,1000) ' dpscale          = ', dpscale,' : time scale for flushing in permeable ice'
@@ -2180,6 +2200,9 @@
          if (tr_lvl)       write(nu_diag,1010) ' tr_lvl           = ', tr_lvl,' : ridging related tracers'
          if (tr_pond_lvl)  write(nu_diag,1010) ' tr_pond_lvl      = ', tr_pond_lvl,' : level-ice pond formulation'
          if (tr_pond_topo) write(nu_diag,1010) ' tr_pond_topo     = ', tr_pond_topo,' : topo pond formulation'
+#ifdef UNDEPRECATE_CESMPONDS
+         if (tr_pond_cesm) write(nu_diag,1010) ' tr_pond_cesm     = ', tr_pond_cesm,' : CESM pond formulation'
+#endif
          if (tr_snow)      write(nu_diag,1010) ' tr_snow          = ', tr_snow,' : advanced snow physics'
          if (tr_iage)      write(nu_diag,1010) ' tr_iage          = ', tr_iage,' : chronological ice age'
          if (tr_FY)        write(nu_diag,1010) ' tr_FY            = ', tr_FY,' : first-year ice area'
@@ -2258,6 +2281,10 @@
          write(nu_diag,1021) ' fyear_init       = ', fyear_init
          write(nu_diag,1021) ' ycycle           = ', ycycle
          write(nu_diag,1031) ' atm_data_type    = ', trim(atm_data_type)
+         !!!!! DPATH2O !!!!!!!!
+         write(nu_diag,1031) ' era5_mod_var  = ', trim(era5_mod_var)
+         write(nu_diag,1031) ' era5_mod_fac  = ', era5_mod_fac
+         !!!!!!!!!!!!!!!!!!!!!!
          if (trim(atm_data_type) /= 'default') then
             write(nu_diag,1031) ' atm_data_dir     = ', trim(atm_data_dir)
             write(nu_diag,1031) ' precip_units     = ', trim(precip_units)
@@ -2268,8 +2295,7 @@
          if (wave_spec) then
             write(nu_diag,1031) ' wave_spec_file   = ', trim(wave_spec_file)
          endif
-         if (trim(bgc_data_type) == 'ncar' .or. &
-             trim(ocn_data_type) == 'ncar') then
+         if (trim(bgc_data_type) == 'ncar' .or. trim(ocn_data_type) == 'ncar' .or. trim(ocn_data_type) == 'AFIM') then
             write(nu_diag,1031) ' oceanmixed_file  = ', trim(oceanmixed_file)
          endif
          if (cpl_bgc) then
@@ -2284,11 +2310,13 @@
          write(nu_diag,1031) ' ice_data_dist    = ', trim(ice_data_dist)
          write(nu_diag,1031) ' bgc_data_dir     = ', trim(bgc_data_dir)
          write(nu_diag,1031) ' ocn_data_type    = ', trim(ocn_data_type)
-         if (trim(bgc_data_type) /= 'default' .or. &
-             trim(ocn_data_type) /= 'default') then
+         if (trim(bgc_data_type) /= 'default' .or. trim(ocn_data_type) /= 'default') then
             write(nu_diag,1031) ' ocn_data_dir     = ', trim(ocn_data_dir)
             write(nu_diag,1011) ' restore_ocn      = ', restore_ocn
          endif
+         !!!!! DPATH2O !!!!!!!!
+         write(nu_diag,1031) ' ocn_data_freq    = ', trim(ocn_data_freq)
+         !!!!!!!!!!!!!!!!!!!!!!
          write(nu_diag,1011) ' restore_ice      = ', restore_ice
          if (restore_ice .or. restore_ocn) &
          write(nu_diag,1021) ' trestore         = ', trestore
@@ -2304,6 +2332,9 @@
          write(nu_diag,1011) ' restart_age      = ', restart_age
          write(nu_diag,1011) ' restart_FY       = ', restart_FY
          write(nu_diag,1011) ' restart_lvl      = ', restart_lvl
+#ifdef UNDEPRECATE_CESMPONDS
+         write(nu_diag,1011) ' restart_pond_cesm= ', restart_pond_cesm
+#endif
          write(nu_diag,1011) ' restart_pond_lvl = ', restart_pond_lvl
          write(nu_diag,1011) ' restart_pond_topo= ', restart_pond_topo
          write(nu_diag,1011) ' restart_snow     = ', restart_snow
@@ -2393,7 +2424,6 @@
          wave_spec_type_in = wave_spec_type, &
          wave_spec_in=wave_spec, nfreq_in=nfreq, &
          tfrz_option_in=tfrz_option, kalg_in=kalg, fbot_xfer_type_in=fbot_xfer_type, &
-         saltflux_option_in=saltflux_option, ice_ref_salinity_in=ice_ref_salinity, &
          Pstar_in=Pstar, Cstar_in=Cstar, iceruf_in=iceruf, iceruf_ocn_in=iceruf_ocn, calc_dragio_in=calc_dragio, &
          windmin_in=windmin, drhosdwind_in=drhosdwind, &
          rsnw_fall_in=rsnw_fall, rsnw_tmax_in=rsnw_tmax, rhosnew_in=rhosnew, &
@@ -2403,7 +2433,11 @@
       call icepack_init_tracer_flags(tr_iage_in=tr_iage, tr_FY_in=tr_FY, &
          tr_lvl_in=tr_lvl, tr_iso_in=tr_iso, tr_aero_in=tr_aero, &
          tr_fsd_in=tr_fsd, tr_snow_in=tr_snow, tr_pond_in=tr_pond, &
+#ifdef UNDEPRECATE_CESMPONDS
+         tr_pond_cesm_in=tr_pond_cesm, tr_pond_lvl_in=tr_pond_lvl, tr_pond_topo_in=tr_pond_topo)
+#else
          tr_pond_lvl_in=tr_pond_lvl, tr_pond_topo_in=tr_pond_topo)
+#endif
       call icepack_init_tracer_sizes(ncat_in=ncat, nilyr_in=nilyr, nslyr_in=nslyr, nblyr_in=nblyr, &
          nfsd_in=nfsd, n_algae_in=n_algae, n_iso_in=n_iso, n_aero_in=n_aero, &
          n_DOC_in=n_DOC, n_DON_in=n_DON, &
@@ -2460,10 +2494,18 @@
          it          , & ! tracer index
          iblk            ! block index
 
+#ifdef UNDEPRECATE_0LAYER
+      logical (kind=log_kind) :: &
+         heat_capacity   ! from icepack
+#endif
 
       integer (kind=int_kind) :: ntrcr
       logical (kind=log_kind) :: tr_iage, tr_FY, tr_lvl, tr_iso, tr_aero
+#ifdef UNDEPRECATE_CESMPONDS
+      logical (kind=log_kind) :: tr_pond_cesm, tr_pond_lvl, tr_pond_topo
+#else
       logical (kind=log_kind) :: tr_pond_lvl, tr_pond_topo
+#endif
       logical (kind=log_kind) :: tr_snow, tr_fsd
       integer (kind=int_kind) :: nt_Tsfc, nt_sice, nt_qice, nt_qsno, nt_iage, nt_FY
       integer (kind=int_kind) :: nt_alvl, nt_vlvl, nt_apnd, nt_hpnd, nt_ipnd
@@ -2477,10 +2519,17 @@
 
       !-----------------------------------------------------------------
 
+#ifdef UNDEPRECATE_0LAYER
+      call icepack_query_parameters(heat_capacity_out=heat_capacity)
+#endif
       call icepack_query_tracer_sizes(ntrcr_out=ntrcr)
       call icepack_query_tracer_flags(tr_iage_out=tr_iage, tr_FY_out=tr_FY, &
         tr_lvl_out=tr_lvl, tr_iso_out=tr_iso, tr_aero_out=tr_aero, &
+#ifdef UNDEPRECATE_CESMPONDS
+        tr_pond_cesm_out=tr_pond_cesm, tr_pond_lvl_out=tr_pond_lvl, tr_pond_topo_out=tr_pond_topo, &
+#else
         tr_pond_lvl_out=tr_pond_lvl, tr_pond_topo_out=tr_pond_topo, &
+#endif
         tr_snow_out=tr_snow, tr_fsd_out=tr_fsd)
       call icepack_query_tracer_indices(nt_Tsfc_out=nt_Tsfc, nt_sice_out=nt_sice, &
         nt_qice_out=nt_qice, nt_qsno_out=nt_qsno, nt_iage_out=nt_iage, nt_fy_out=nt_fy, &
@@ -2514,6 +2563,25 @@
                file=__FILE__, line=__LINE__)
          endif
 
+#ifdef UNDEPRECATE_0LAYER
+         if (.not.heat_capacity) then
+
+            if (nilyr > 1) then
+               write(nu_diag,*) subname//' ERROR: Must have nilyr = 1 if heat_capacity=F'
+               write(nu_diag,*) subname//' ERROR:   nilyr =', nilyr
+               call abort_ice(error_message=subname//' Too many ice layers', &
+                  file=__FILE__, line=__LINE__)
+            endif
+
+            if (nslyr > 1) then
+               write(nu_diag,*) subname//' ERROR: Must have nslyr = 1 if heat_capacity=F'
+               write(nu_diag,*) subname//' ERROR:  nslyr =', nslyr
+               call abort_ice(error_message=subname//' Too many snow layers', &
+                  file=__FILE__, line=__LINE__)
+            endif
+
+         endif   ! heat_capacity = F
+#endif
       endif      ! my_task
 
       !-----------------------------------------------------------------
@@ -2532,6 +2600,12 @@
       if (tr_FY)   trcr_depend(nt_FY)    = 0   ! area-weighted first-year ice area
       if (tr_lvl)  trcr_depend(nt_alvl)  = 0   ! level ice area
       if (tr_lvl)  trcr_depend(nt_vlvl)  = 1   ! level ice volume
+#ifdef UNDEPRECATE_CESMPONDS
+      if (tr_pond_cesm) then
+                   trcr_depend(nt_apnd)  = 0           ! melt pond area
+                   trcr_depend(nt_hpnd)  = 2+nt_apnd   ! melt pond depth
+      endif
+#endif
       if (tr_pond_lvl) then
                    trcr_depend(nt_apnd)  = 2+nt_alvl   ! melt pond area
                    trcr_depend(nt_hpnd)  = 2+nt_apnd   ! melt pond depth
@@ -2593,6 +2667,12 @@
          nt_strata   (it,2) = 0
       enddo
 
+#ifdef UNDEPRECATE_CESMPONDS
+      if (tr_pond_cesm) then
+         n_trcr_strata(nt_hpnd)   = 1       ! melt pond depth
+         nt_strata    (nt_hpnd,1) = nt_apnd ! on melt pond area
+      endif
+#endif
       if (tr_pond_lvl) then
          n_trcr_strata(nt_apnd)   = 1       ! melt pond area
          nt_strata    (nt_apnd,1) = nt_alvl ! on level ice area
@@ -2809,7 +2889,7 @@
          indxi, indxj    ! compressed indices for cells with aicen > puny
 
       real (kind=dbl_kind) :: &
-         Tsfc, sum, hbar, abar, puny, rhos, Lfresh, rad_to_deg, rsnw_fall, dist_ratio, Tffresh
+         Tsfc, sum, hbar, abar, puny, rhos, Lfresh, rad_to_deg, rsnw_fall, dist_ratio
 
       real (kind=dbl_kind), dimension(ncat) :: &
          ainit, hinit    ! initial area, thickness
@@ -2851,7 +2931,7 @@
         nt_smice_out=nt_smice, nt_smliq_out=nt_smliq, &
         nt_rhos_out=nt_rhos, nt_rsnw_out=nt_rsnw)
       call icepack_query_parameters(rhos_out=rhos, Lfresh_out=Lfresh, puny_out=puny, &
-        rad_to_deg_out=rad_to_deg, rsnw_fall_out=rsnw_fall, Tffresh_out=Tffresh)
+        rad_to_deg_out=rad_to_deg, rsnw_fall_out=rsnw_fall)
       call icepack_query_parameters(secday_out=secday, pi_out=pi)
       call icepack_warnings_flush(nu_diag)
       if (icepack_warnings_aborted()) call abort_ice(error_message=subname, &
@@ -3089,12 +3169,7 @@
             do i = ilo, ihi
                if (tmask(i,j)) then
                   ! place ice in high latitudes where ocean sfc is cold
-#ifdef CESMCOUPLED
-                  ! Option to use Tair instead.
-                  if ( (Tair (i,j) <= Tffresh) .and. &
-#else
                   if ( (sst (i,j) <= Tf(i,j)+p2) .and. &
-#endif
                        (TLAT(i,j) < edge_init_sh/rad_to_deg .or. &
                         TLAT(i,j) > edge_init_nh/rad_to_deg) ) then
                      icells = icells + 1
